@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ProductCard } from "@/components/product-card";
-import { getCatalogue } from "@/lib/catalogue";
+import { getCatalogue, getCatalogueOrThrow } from "@/lib/catalogue";
 import { categoriesOf } from "@/lib/catalogue-map";
 import { HeroPlate } from "@/components/product-plate";
 import { RevealObserver } from "@/components/reveal-observer";
@@ -12,7 +12,7 @@ const DROP = "drop-001";
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const products = await getCatalogue();
+  const products = await getCatalogueOrThrow();
   return [{ slug: DROP }, ...categoriesOf(products).map((c) => ({ slug: c.slug }))];
 }
 

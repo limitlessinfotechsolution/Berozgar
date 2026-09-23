@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getCatalogue, getCatalogueProduct } from "@/lib/catalogue";
+import { getCatalogueOrThrow, getCatalogueProduct } from "@/lib/catalogue";
 import { plateFor } from "@/lib/plate";
 
 export const size = { width: 1200, height: 630 };
@@ -7,7 +7,7 @@ export const contentType = "image/png";
 export const alt = "BEROZGAR product";
 
 export async function generateStaticParams() {
-  const products = await getCatalogue();
+  const products = await getCatalogueOrThrow();
   return products.map((product) => ({ slug: product.slug }));
 }
 

@@ -24,6 +24,11 @@ jobs:
 
       # NEXT_PUBLIC_SITE_URL is required — a production build fails without it.
       # Only affects sitemap/robots/OG URLs, so a placeholder is fine in CI.
+      #
+      # ALLOW_EMPTY_CATALOGUE is required because CI has no ERP to reach, and a
+      # production build otherwise fails rather than bake an empty shop. Netlify
+      # deliberately does NOT set it — there the guard must bite.
       - run: npm run build
         env:
           NEXT_PUBLIC_SITE_URL: https://berozgar.example.com
+          ALLOW_EMPTY_CATALOGUE: "1"

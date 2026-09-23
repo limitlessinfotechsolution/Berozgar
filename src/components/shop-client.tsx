@@ -51,7 +51,13 @@ function buildHref(q: Query) {
   return s ? `/shop?${s}` : "/shop";
 }
 
-export function ShopClient({ initialProducts }: { initialProducts: Product[] }) {
+export function ShopClient({
+  initialProducts,
+  unavailable = false,
+}: {
+  initialProducts: Product[];
+  unavailable?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query: Query = Object.fromEntries(searchParams.entries());
@@ -179,6 +185,14 @@ export function ShopClient({ initialProducts }: { initialProducts: Product[] }) 
             <div id="shop-grid" className="grid3">
               {results.length ? (
                 results.map((product) => <ProductCard key={product.id} product={product} />)
+              ) : unavailable ? (
+                /* The ERP did not answer. Say so — an outage dressed up as an
+                   empty shop is how a broken deploy goes unnoticed. */
+                <div className="empty" style={{ gridColumn: "1 / -1" }}>
+                  <h2 className="h3">CATALOGUE UNAVAILABLE.</h2>
+                  <p>We can&apos;t reach our catalogue right now. Please try again in a moment.</p>
+                  <button className="btn btn-o" onClick={() => router.refresh()}>RETRY</button>
+                </div>
               ) : initialProducts.length === 0 ? (
                 <div className="empty" style={{ gridColumn: "1 / -1" }}>
                   <h2 className="h3">NOTHING IN STOCK RIGHT NOW.</h2>

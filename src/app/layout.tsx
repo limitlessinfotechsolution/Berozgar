@@ -6,7 +6,7 @@ import { SessionProvider } from "@/components/session-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { QuickSheet } from "@/components/quick-sheet";
-import { getCatalogue } from "@/lib/catalogue";
+import { getCatalogueState } from "@/lib/catalogue";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -28,13 +28,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  /* One cached read of the ERP catalogue, shared with every client component. */
-  const products = await getCatalogue();
+  /* One cached read of the ERP catalogue, shared with every client component.
+     Deliberately the forgiving read: an ERP outage must not take down the legal
+     pages, order tracking or the rest of the site along with the shop. */
+  const { products, unavailable } = await getCatalogueState();
 
   return (
     <html lang="en" className={`${archivo.variable} antialiased`} data-scroll-behavior="smooth">
       <body>
-        <CatalogueProvider products={products}>
+        <CatalogueProvider products={products} unavailable={unavailable}>
           <SessionProvider>
             <CartProvider>
               <div className="brz-reset flex flex-col min-h-screen">

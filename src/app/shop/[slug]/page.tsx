@@ -1,13 +1,15 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getCatalogue, getCatalogueProduct } from "@/lib/catalogue";
+import { getCatalogueOrThrow, getCatalogueProduct } from "@/lib/catalogue";
 import { ProductDetail } from "@/components/product-detail";
 
 /* Products added in the admin after a build still resolve — they render on first request. */
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const products = await getCatalogue();
+  /* Not re-run during revalidation, so an empty list here means no product
+     pages until the next build. Fail the build instead. */
+  const products = await getCatalogueOrThrow();
   return products.map((product) => ({ slug: product.slug }));
 }
 

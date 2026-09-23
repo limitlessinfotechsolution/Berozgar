@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { ShopClient } from "@/components/shop-client";
-import { getCatalogue } from "@/lib/catalogue";
+import { getCatalogueState } from "@/lib/catalogue";
 
 export const metadata = {
   title: "SHOP — BEROZGAR",
@@ -8,10 +8,10 @@ export const metadata = {
 };
 
 export default async function ShopPage() {
-  const products = await getCatalogue();
+  const { products, unavailable } = await getCatalogueState();
   return (
     <Suspense>
-      <ShopClient initialProducts={products} />
+      <ShopClient initialProducts={products} unavailable={unavailable} />
     </Suspense>
   );
 }

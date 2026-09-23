@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getCatalogue } from "@/lib/catalogue";
+import { getCatalogueOrThrow } from "@/lib/catalogue";
 import { categoriesOf } from "@/lib/catalogue-map";
 import { articles, looks } from "@/lib/data";
 import { SITE_URL as BASE } from "@/lib/site";
@@ -38,7 +38,8 @@ const STATIC_ROUTES = [
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const products = await getCatalogue();
+  /* Baked at build: an empty sitemap is what Google would read. */
+  const products = await getCatalogueOrThrow();
 
   return [
     ...categoriesOf(products).map((category) => ({
