@@ -49,8 +49,63 @@ export function allowEmptyCatalogue(configured: string | undefined): boolean {
   return value === "1" || value === "true";
 }
 
+const DEV_ERP_FALLBACK = "http://localhost:3001";
+
+/*
+ * The ERP public API origin.
+ *
+ * Two variables because a Netlify function never saw the runtime one: two builds
+ * in a row fell through to the localhost default and failed with ECONNREFUSED on
+ * ::1 and 127.0.0.1, which reads like a network fault rather than missing config.
+ * NEXT_PUBLIC_ERP_API_URL is inlined into the bundle at build time — server code
+ * included — so the deployed function holds it as a literal and needs no runtime
+ * environment at all.
+ *
+ * ERP_API_URL still wins, so moving the value back to a private runtime variable
+ * later means deleting the public one and nothing else.
+ *
+ * Pure so the failure modes can be tested, like resolveSiteUrl in site.ts.
+ */
+export function resolveErpUrl(
+  runtime: string | undefined,
+  baked: string | undefined,
+  isProduction: boolean
+): string {
+  const value = runtime?.trim() || baked?.trim();
+
+  if (!value) {
+    if (isProduction) {
+      throw new Error(
+        "ERP_API_URL is not set. A deployed storefront cannot reach the ERP without it, and " +
+          "falling back to localhost would make the site's own container answer. Set " +
+          "NEXT_PUBLIC_ERP_API_URL at build time, or ERP_API_URL in the host's runtime environment."
+      );
+    }
+    return DEV_ERP_FALLBACK;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`ERP_API_URL is not a valid URL: ${value}`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`ERP_API_URL must be http or https, got ${parsed.protocol}`);
+  }
+
+  /* No trailing slash — every caller appends a path that starts with one. */
+  return parsed.origin;
+}
+
 export function erpUrl(path: string): string {
-  const base = (process.env.ERP_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  /* Both reads must stay literal: Next only inlines a written-out
+     process.env.NEXT_PUBLIC_* expression, not one behind a variable. */
+  const base = resolveErpUrl(
+    process.env.ERP_API_URL,
+    process.env.NEXT_PUBLIC_ERP_API_URL,
+    process.env.NODE_ENV === "production"
+  );
   return `${base}/api/public/v1${path}`;
 }
 

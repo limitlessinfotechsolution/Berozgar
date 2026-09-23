@@ -24,14 +24,22 @@
   # must be the real origin before the site is indexed.
   NEXT_PUBLIC_SITE_URL = "https://berozgari.netlify.app"
 
-  # ERP_API_URL is deliberately NOT set here.
+  # The ERP origin, as NEXT_PUBLIC_ on purpose.
   #
-  # [build.environment] reaches the build only. The storefront reads ERP_API_URL
-  # at request time too — ISR regeneration runs in a Netlify function — and a
-  # function does not see this block. Setting it here produced a site that built
-  # correctly and then emptied itself within the 60s revalidate window, because
-  # the function fell back to the localhost default in src/lib/catalogue.ts.
+  # [build.environment] reaches the build only, and the storefront also needs the
+  # ERP at request time — ISR regeneration and the /api/checkout, /api/checkout/
+  # quote and /api/track handlers all run in Netlify functions. A plain
+  # ERP_API_URL here would not reach them, and the Netlify UI variable never
+  # arrived either: two builds fell through to the localhost default.
   #
-  # Set ERP_API_URL in the Netlify UI instead (Site configuration ->
-  # Environment variables). UI variables apply to BOTH build and runtime, and a
-  # value here would silently override the UI one at build time.
+  # NEXT_PUBLIC_* is inlined into the bundle at build time, server code included,
+  # so the function holds this as a literal and needs no runtime environment.
+  # src/lib/catalogue.ts still prefers a private ERP_API_URL when one exists.
+  #
+  # TEMPORARY: a cloudflared quick tunnel to the ERP on a laptop. The hostname is
+  # reissued whenever cloudflared restarts, so update it here and push.
+  #
+  # REVALIDATE_SECRET must NEVER move here — NEXT_PUBLIC_ or not, this file is
+  # committed, and a NEXT_PUBLIC_ secret would also ship in client JS. It stays a
+  # Netlify UI variable.
+  NEXT_PUBLIC_ERP_API_URL = "https://framework-farmer-den-mambo.trycloudflare.com"

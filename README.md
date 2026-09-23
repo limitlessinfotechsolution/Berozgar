@@ -28,7 +28,8 @@ All three variables are documented in `.env.local.example`:
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_SITE_URL` | Public origin. Used by the sitemap, `robots.txt`, canonical URLs and OG images. A **production build fails without it**; dev falls back to `:3003`. |
-| `ERP_API_URL` | Base URL of the ERP's public API (`apps/api`, `:3001` locally). |
+| `ERP_API_URL` | Base URL of the ERP's public API (`apps/api`, `:3001` locally). Read at **request** time — checkout, quote and tracking all call the ERP per request — so a deploy needs it in the host's runtime environment. |
+| `NEXT_PUBLIC_ERP_API_URL` | Deploy-time alternative to the above, for hosts whose runtime environment is awkward to set (this is how Netlify is configured). `NEXT_PUBLIC_*` is inlined into the bundle at build, server code included. `ERP_API_URL` wins when both exist. Never use a `NEXT_PUBLIC_` name for a secret — it ships in client JS. |
 | `REVALIDATE_SECRET` | Shared secret for `/api/revalidate`. Must equal `STOREFRONT_REVALIDATE_SECRET` in the ERP admin's `.env`. |
 
 `.env.local` is git-ignored. Never commit real secrets.
