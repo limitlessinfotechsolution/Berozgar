@@ -36,10 +36,15 @@
   # so the function holds this as a literal and needs no runtime environment.
   # src/lib/catalogue.ts still prefers a private ERP_API_URL when one exists.
   #
-  # TEMPORARY: a cloudflared quick tunnel to the ERP on a laptop. The hostname is
-  # reissued whenever cloudflared restarts, so update it here and push.
+  # TEMPORARY: a cloudflared quick tunnel to the ERP on a laptop.
+  #
+  # Quick tunnels are disposable. Cloudflare revoked the previous one outright —
+  # cloudflared stayed running but logged "Unauthorized: Tunnel not found" and
+  # retried forever, so the site showed CATALOGUE UNAVAILABLE until it was
+  # restarted with a new hostname. Expect to repeat that: restart cloudflared,
+  # put the new URL here, push. A named tunnel or a hosted ERP removes this.
   #
   # REVALIDATE_SECRET must NEVER move here — NEXT_PUBLIC_ or not, this file is
   # committed, and a NEXT_PUBLIC_ secret would also ship in client JS. It stays a
   # Netlify UI variable.
-  NEXT_PUBLIC_ERP_API_URL = "https://framework-farmer-den-mambo.trycloudflare.com"
+  NEXT_PUBLIC_ERP_API_URL = "https://sender-basics-railroad-loans.trycloudflare.com"
