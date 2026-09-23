@@ -6,8 +6,7 @@
 
 export type Plate = {
   tone: string;
-  /* Undefined when the seed exceeds 2^31 — see the note in plateFor. */
-  pat: string | undefined;
+  pat: string;
   num: string;
   word: string;
   tag: string;
@@ -23,14 +22,23 @@ function hash(value: string) {
 }
 
 export function plateFor(slug: string, word?: string, variant = 0): Plate {
-  const seed = hash(String(slug || "x")) + 97 * variant;
+  const base = hash(String(slug || "x"));
+  const seed = base + 97 * variant;
   return {
-    tone: ["t0", "t1", "t2", "t3"][seed % 4],
-    // `>>` coerces to a signed int32, so any seed past 2^31 makes this index
-    // negative and `pat` comes back undefined — the plate then renders with no
-    // texture. That is what the live site does (it emits a literal "undefined"
-    // class), so keep the signed shift: "fixing" it would change the artwork.
-    pat: ["pt-a", "pt-b", "pt-c", "pt-d"][(seed >> 2) % 4],
+    /*
+     * Tone comes from the slug alone, not the variant. Several plates of one
+     * product are meant to read as one garment shot a few ways; when the variant
+     * moved the tone too, a product's gallery mixed the cream t2 in among the
+     * dark tones and looked like five unrelated products.
+     */
+    tone: ["t0", "t1", "t2", "t3"][base % 4],
+    /*
+     * `>>>`, not `>>`. A signed shift on a hash above 2^31 yields a negative
+     * index, so `pat` was undefined and the plate rendered as a flat block with
+     * no texture — which is every slug whose hash happens to be large, including
+     * bz-ts-classic (3867145177).
+     */
+    pat: ["pt-a", "pt-b", "pt-c", "pt-d"][(seed >>> 2) % 4],
     num: String((seed % 80) + 10),
     word: (word && word.length ? word : "BRZ").toUpperCase(),
     tag: variant === 1 ? "DROP 001" : "UNEMPLOYED",

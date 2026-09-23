@@ -362,7 +362,9 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .pg-mob{display:none;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-top:14px}
 .pg-mob::-webkit-scrollbar{display:none}
 .pg-mob .slide{flex:0 0 78%;scroll-snap-align:center;aspect-ratio:3/4}
-@media(max-width:900px){.pg-mob{display:flex}}
+/* !important because the markup also carries .only-m, whose display:block would
+   otherwise win and collapse the swipe track into stacked full-width slides. */
+@media(max-width:900px){.pg-mob{display:flex!important}}
 .pinfo h1{margin:6px 0 10px}
 .pinfo .rate{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:18px}
 .pinfo .price{font-size:22px}

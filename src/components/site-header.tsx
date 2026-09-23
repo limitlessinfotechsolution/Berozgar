@@ -115,7 +115,9 @@ export function SiteHeader() {
             {products.some((p) => p.compareAt) && <Link className="mg" href="/shop?cat=sale">SALE</Link>}
           </div>
           <Link href="/collections/drop-001" className="mega-plate" aria-label="Shop Drop 001">
-            <div className="plate t2" role="img" aria-label="Drop 001">
+            {/* pt-a because globals.css carries a .t2.pt-a rule built for exactly this
+                pairing — a dark-on-light texture, since t2 is the cream tone. */}
+            <div className="plate t2 pt-a" role="img" aria-label="Drop 001">
               <span className="pl-num">64</span>
               <span className="pl-word">DROP 001</span>
               <span className="pl-tag">UNEMPLOYED</span>
