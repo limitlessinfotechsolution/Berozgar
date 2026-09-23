@@ -1,0 +1,25 @@
+# Netlify build configuration for the Berozgar storefront.
+#
+# Environment variables set in this file take precedence over ones set in the
+# Netlify UI, so keep NEXT_PUBLIC_SITE_URL here and nowhere else — defining it
+# in both places means the UI value is silently ignored.
+#
+# Secrets never go in this file: it is public to anyone with repo access.
+# REVALIDATE_SECRET and ERP_API_URL belong in the Netlify UI under
+# Site configuration -> Environment variables.
+#
+# Node version comes from .nvmrc (24); Netlify reads it automatically.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  # NEXT_PUBLIC_* values are inlined into the bundle at build time, so changing
+  # this needs a fresh deploy — a cached rebuild will keep the old origin.
+  # It feeds canonical URLs, the sitemap, robots.txt and OG image URLs, so it
+  # must be the real origin before the site is indexed.
+  NEXT_PUBLIC_SITE_URL = "https://berozgari.netlify.app"
