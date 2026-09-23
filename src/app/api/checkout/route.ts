@@ -1,0 +1,67 @@
+import { NextResponse } from "next/server";
+import { erpUrl } from "@/lib/catalogue";
+
+/*
+ * Checkout → ERP order. A server-side proxy to POST /api/public/v1/checkout, so
+ * the browser never talks to the ERP directly (no CORS, no ERP URL in the bundle)
+ * and the client IP is forwarded for the ERP's rate limit and audit trail.
+ *
+ * Contract with the checkout page (unchanged from the mock): `{ success: true,
+ * orderId }` on success; anything else is a failure and must not be shown as an
+ * order. The ERP prices the order itself — this route never sends a total.
+ */
+
+type LineProblem = { variantId: string; reason: "unknown" | "unavailable" | "insufficient_stock"; available?: number };
+
+function describe(status: number, body: { message?: string; lines?: LineProblem[]; issues?: unknown }): string {
+  if (status === 429) return "Too many attempts — wait a minute and try again.";
+  if (body.lines?.length) {
+    return body.lines
+      .map((l) =>
+        l.reason === "insufficient_stock"
+          ? `One item only has ${l.available ?? 0} left.`
+          : "One item is no longer available."
+      )
+      .join(" ");
+  }
+  if (status === 422) return "Some details look wrong — check your phone number, PIN code and address.";
+  return "The order service didn't accept the order.";
+}
+
+export async function POST(request: Request) {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return NextResponse.json({ success: false, error: "Malformed request" }, { status: 400 });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(erpUrl("/checkout"), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": request.headers.get("x-forwarded-for") ?? "",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+  } catch (error) {
+    console.error("[checkout] ERP unreachable:", error);
+    return NextResponse.json(
+      { success: false, error: "The order service is unreachable. Your order was not placed." },
+      { status: 502 }
+    );
+  }
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || !body?.success || !body?.orderId) {
+    return NextResponse.json(
+      { success: false, error: describe(response.status, body ?? {}), lines: body?.lines ?? [] },
+      { status: response.ok ? 502 : response.status }
+    );
+  }
+
+  return NextResponse.json({ success: true, orderId: body.orderId, grandTotal: body.grandTotal });
+}
