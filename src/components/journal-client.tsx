@@ -53,7 +53,7 @@ export function JournalClient({ articles }: { articles: Article[] }) {
           <h2 className="h2">LATEST</h2>
         </div>
 
-        <div className="grid3" data-rev="true">
+        <div className="grid-ed" data-rev="true">
           {rest.map((article) => (
             <Link key={article.slug} className="jcard" href={`/journal/${article.slug}`}>
               <Plate slug={article.slug} word={article.category} label={article.title} variant={0} />

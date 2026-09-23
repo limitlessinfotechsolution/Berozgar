@@ -51,7 +51,18 @@ ul{list-style:none}
   .only-d{display:none!important}
   .only-m{display:block!important}
 }
-@media(max-width:560px){.grid3,.grid2{grid-template-columns:1fr 1fr}}
+/* .grid3 deliberately stays two-up on phones: it is also the shop's product grid. */
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+/* Editorial card grids (journal, collections). Unlike .grid3, which doubles as the
+   shop's product grid, these carry a handful of text-led cards, and a trailing card
+   alone in a two-column row reads as a broken layout rather than as a gap. */
+.grid-ed{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,2vw,28px)}
+@media(max-width:900px){
+  .grid-ed{grid-template-columns:repeat(2,1fr)}
+  /* Odd count: the last card fills the row instead of leaving a hole beside it. */
+  .grid-ed>:last-child:nth-child(odd){grid-column:1/-1}
+}
+@media(max-width:560px){.grid-ed{grid-template-columns:1fr}}
 /* ============ 04 BUTTONS / INPUTS / UI ============ */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 32px;
   font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--bk);
@@ -227,9 +238,6 @@ body.hdr-scrolled #mega{top:56px}
 .hot::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--bk);animation:pulse 2s var(--e) infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.5)}}
 .hot:hover{background:var(--bk)}.hot:hover::before{background:var(--wt)}
-.ugc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.ugc-grid .u{position:relative;aspect-ratio:1}
-.ugc-grid .u figcaption{position:absolute;left:8px;bottom:8px;font-size:10px;font-weight:700;letter-spacing:.1em;z-index:2}
 .jcard{display:flex;flex-direction:column;gap:14px}
 .jcard .plate{aspect-ratio:16/10;transition:transform .5s var(--e)}
 .jcard:hover .plate{transform:scale(1.02)}
@@ -250,7 +258,11 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .f-bottom{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:56px;padding-top:24px;border-top:1px solid var(--dk)}
 .f-bottom small{font-size:11px;letter-spacing:.1em;color:#777;text-transform:uppercase}
 .f-soc{display:flex;gap:18px;font-size:11px;letter-spacing:.16em;font-weight:700;text-transform:uppercase}
-@media(max-width:900px){.f-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){
+  .f-grid{grid-template-columns:1fr 1fr}
+  /* Five columns into two rows leaves the last one alone — let it fill instead. */
+  .f-grid>:last-child:nth-child(odd){grid-column:1/-1}
+}
 /* ============ 11 BOTTOM NAV ============ */
 #bnav{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;background:var(--wt);border-top:1px solid var(--gy);
   padding-bottom:env(safe-area-inset-bottom)}

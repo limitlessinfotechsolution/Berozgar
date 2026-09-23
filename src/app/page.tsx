@@ -216,7 +216,7 @@ export default function Home() {
                 <h2 className="h2">JOURNAL</h2>
                 <Link href="/journal" className="tlink">ALL STORIES →</Link>
               </div>
-              <div className="grid3" data-rev="true">
+              <div className="grid-ed" data-rev="true">
                 {homeArticles.map((article) => (
                   <Link className="jcard" href={`/journal/${article.slug}`} key={article.slug}>
                     <Plate slug={article.slug} word={article.category} label={article.title} />

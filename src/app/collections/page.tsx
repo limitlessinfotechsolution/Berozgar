@@ -38,7 +38,7 @@ export default async function CollectionsPage() {
         </p>
 
         {categories.length > 0 && (
-          <div className="grid3" style={{ marginTop: "48px" }} data-rev="true">
+          <div className="grid-ed" style={{ marginTop: "48px" }} data-rev="true">
             {categories.map((category) => (
               <Link key={category.slug} href={`/collections/${category.slug}`} className="jcard">
                 <Plate slug={category.slug} word={category.name} label={category.name} variant={2} />
