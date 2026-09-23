@@ -24,13 +24,14 @@
   # must be the real origin before the site is indexed.
   NEXT_PUBLIC_SITE_URL = "https://berozgari.netlify.app"
 
-  # TEMPORARY — a cloudflared quick tunnel to the ERP running on a laptop
-  # (localhost:3001). Quick-tunnel URLs are random and are reissued every time
-  # cloudflared restarts, so this line goes stale the moment the tunnel drops:
-  # the deployed site then falls back to an empty catalogue.
+  # ERP_API_URL is deliberately NOT set here.
   #
-  # Reissue with:  cloudflared tunnel --url http://localhost:3001
-  # then update this value and push, which redeploys.
+  # [build.environment] reaches the build only. The storefront reads ERP_API_URL
+  # at request time too — ISR regeneration runs in a Netlify function — and a
+  # function does not see this block. Setting it here produced a site that built
+  # correctly and then emptied itself within the 60s revalidate window, because
+  # the function fell back to the localhost default in src/lib/catalogue.ts.
   #
-  # Replace with a stable ERP origin once the ERP is actually hosted.
-  ERP_API_URL = "https://framework-farmer-den-mambo.trycloudflare.com"
+  # Set ERP_API_URL in the Netlify UI instead (Site configuration ->
+  # Environment variables). UI variables apply to BOTH build and runtime, and a
+  # value here would silently override the UI one at build time.
