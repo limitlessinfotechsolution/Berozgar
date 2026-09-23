@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { findVariant, sizeAvailable, type Product } from "@/lib/products";
 import { useCart } from "@/components/cart-provider";
 import { useCatalogue } from "@/components/catalogue-provider";
@@ -29,6 +29,26 @@ export function ProductDetail({ product }: { product: Product }) {
   const [openAcc, setOpenAcc] = useState(0);
   const [sizeGuide, setSizeGuide] = useState(false);
   const [stickyShown, setStickyShown] = useState(false);
+  const mobTrack = useRef<HTMLDivElement>(null);
+
+  /*
+   * The dots follow the swipe. Slides are exactly one track wide, so the index is
+   * the scroll offset over the track width — no observer needed, and it stays
+   * correct mid-drag rather than only on snap.
+   */
+  function onMobScroll() {
+    const track = mobTrack.current;
+    if (!track || track.clientWidth === 0) return;
+    const index = Math.round(track.scrollLeft / track.clientWidth);
+    setGallery((current) => (index === current ? current : index));
+  }
+
+  /* Tapping a dot is the same movement as a swipe, so the handler above updates. */
+  function goToSlide(index: number) {
+    const track = mobTrack.current;
+    if (!track) return;
+    track.scrollTo({ left: index * track.clientWidth, behavior: "smooth" });
+  }
 
   /* The sticky bar appears once the main add-to-bag button scrolls out of view. */
   useEffect(() => {
@@ -130,11 +150,54 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
           </div>
 
-          <div className="pg-mob only-m">
-            {Array.from({ length: Math.min(slides, 4) }, (_, i) => (
-              <div className="slide" key={i}>{slide(i)}</div>
-            ))}
+          {/*
+            Mobile gallery. The wrapper carries only-m (and the badge and dots),
+            so the track itself stays a plain flex scroller — putting them inside
+            the scroller would drag them along with the swipe.
+          */}
+          <div className="pg-mobwrap only-m">
+            <div
+              className="pg-mob"
+              ref={mobTrack}
+              onScroll={onMobScroll}
+              role="group"
+              aria-label={`${product.name} gallery`}
+            >
+              {Array.from({ length: slides }, (_, i) => (
+                <div className="slide" key={i}>{slide(i)}</div>
+              ))}
+            </div>
+
+            {/* One badge only: a full-bleed image has no room to stack them. */}
+            {product.soldout ? <span className="badge sold">SOLD OUT</span>
+              : product.compareAt ? <span className="badge sale">SALE</span>
+              : product.badges[0] ? <span className="badge">{product.badges[0]}</span>
+              : null}
+
+            {/* Deliberately not role="tablist": these are jump controls, not tabs —
+                there are no tab panels and no arrow-key handling, so claiming tabs
+                would mislead a screen reader. aria-current marks the one in view. */}
+            {slides > 1 && (
+              <div className="pg-dots" role="group" aria-label="Gallery position">
+                {Array.from({ length: slides }, (_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={i === gallery ? "on" : ""}
+                    aria-current={i === gallery}
+                    aria-label={`Go to image ${i + 1} of ${slides}`}
+                    onClick={() => goToSlide(i)}
+                  >
+                    <i />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {product.stock ? (
+            <p className="cap mut pg-stock only-m">ONLY {product.stock} LEFT</p>
+          ) : null}
 
           <div className="pinfo">
             <p className="eyebrow mut">{product.categoryName}</p>

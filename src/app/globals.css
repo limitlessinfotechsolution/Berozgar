@@ -11,6 +11,8 @@
   --e:cubic-bezier(.22,.61,.36,1);
   --tm:.12s;--tf:.18s;--tn:.25s;--te:.5s;
   --hdr:64px;--ann:36px;
+  /* The page gutter. Shared so a full-bleed element can cancel it exactly. */
+  --pad:clamp(16px,4vw,48px);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -38,7 +40,7 @@ ul{list-style:none}
 .mut{color:#777}
 .num{font-variant-numeric:tabular-nums}
 /* ============ 03 LAYOUT ============ */
-.wrap{max-width:1360px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+.wrap{max-width:1360px;margin:0 auto;padding:0 var(--pad)}
 .sec{padding:clamp(56px,8vw,110px) 0}
 .sec-of{background:var(--of)}
 .sec-bk{background:var(--bk);color:var(--wt)}
@@ -353,18 +355,34 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .pdp{display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(24px,4vw,64px);padding:24px 0 0}
 @media(max-width:900px){.pdp{grid-template-columns:1fr}}
 .pgal{display:grid;grid-template-columns:76px 1fr;gap:14px;align-self:start;position:sticky;top:calc(var(--hdr) + 20px)}
-@media(max-width:900px){.pgal{display:block}}
+/* The desktop gallery goes entirely: the full-bleed swipe track replaces it.
+   It used to stay visible here, so a phone got the big static image AND the
+   swipe track stacked under it — two galleries of the same product. */
+@media(max-width:900px){.pgal{display:none}}
 .pg-thumbs{display:flex;flex-direction:column;gap:10px}
-@media(max-width:900px){.pg-thumbs{display:none}}
 .pg-thumbs button{aspect-ratio:3/4;border:1px solid transparent;transition:border-color var(--tf)}
 .pg-thumbs button.on{border-color:var(--bk)}
 .pg-main{aspect-ratio:3/4;position:relative}
-.pg-mob{display:none;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-top:14px}
+/*
+ * Mobile gallery: one full-bleed image at a time, swiped, with dots below.
+ *
+ * The wrapper cancels the page gutter so the image runs edge to edge, and it is
+ * what carries .only-m — the track stays a plain flex scroller, because .only-m's
+ * display:block would otherwise collapse it into stacked slides.
+ */
+.pg-mobwrap{position:relative;margin:14px calc(var(--pad) * -1) 0;width:calc(100% + var(--pad) * 2)}
+.pg-mob{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .pg-mob::-webkit-scrollbar{display:none}
-.pg-mob .slide{flex:0 0 78%;scroll-snap-align:center;aspect-ratio:3/4}
-/* !important because the markup also carries .only-m, whose display:block would
-   otherwise win and collapse the swipe track into stacked full-width slides. */
-@media(max-width:900px){.pg-mob{display:flex!important}}
+/* Exactly one track width per slide, which is what makes scrollLeft/clientWidth
+   the slide index in product-detail.tsx. No gap: edge to edge means no seam. */
+.pg-mob .slide{flex:0 0 100%;scroll-snap-align:start;aspect-ratio:3/4}
+/* Inset to the page gutter so it lines up with the copy below, not the screen edge. */
+.pg-mobwrap .badge{top:12px;left:var(--pad)}
+.pg-dots{display:flex;justify-content:center;gap:2px;padding:12px 0 0}
+.pg-dots button{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.pg-dots i{display:block;width:6px;height:6px;border-radius:50%;background:#ccc;transition:background var(--tf),transform var(--tf)}
+.pg-dots button.on i{background:var(--bk);transform:scale(1.35)}
+.pg-stock{margin-top:10px}
 .pinfo h1{margin:6px 0 10px}
 .pinfo .rate{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:18px}
 .pinfo .price{font-size:22px}
