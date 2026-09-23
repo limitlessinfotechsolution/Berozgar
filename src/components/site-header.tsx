@@ -74,23 +74,25 @@ export function SiteHeader() {
             <Link href="/journal" data-nav="journal">JOURNAL</Link>
           </nav>
           
+          {/*
+            Search, wishlist and account are desktop-only here because the mobile
+            bottom nav already carries all three. Showing both put two search
+            buttons on screen at once. The bag stays at every width: it is the
+            only control the bottom nav does not have, and it carries the count.
+          */}
           <div className="hicons">
-            <button className="icobtn" aria-label="Search" onClick={() => setSearchOpen(true)}>
+            <button className="icobtn only-d" aria-label="Search" onClick={() => setSearchOpen(true)}>
               <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5"></path></svg>
             </button>
-            <Link className="icobtn" href="/account/wishlist" aria-label="Wishlist">
+            <Link className="icobtn only-d" href="/account/wishlist" aria-label="Wishlist">
               <svg viewBox="0 0 24 24"><path d="M12 21C7 16.5 3 13.2 3 9.1 3 6.3 5.2 4 8 4c1.6 0 3.1.8 4 2 .9-1.2 2.4-2 4-2 2.8 0 5 2.3 5 5.1 0 4.1-4 7.4-9 11.9z"></path></svg>
             </Link>
-            <Link className="icobtn" href={isAuthenticated ? "/account" : "/login"} aria-label="Account">
+            <Link className="icobtn only-d" href={isAuthenticated ? "/account" : "/login"} aria-label="Account">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"></path></svg>
             </Link>
-            <button className="icobtn" aria-label="Bag" onClick={() => setCartOpen(true)} style={{ position: 'relative' }}>
+            <button className="icobtn" aria-label={itemCount > 0 ? `Bag, ${itemCount} items` : "Bag"} onClick={() => setCartOpen(true)}>
               <svg viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg>
-              {itemCount > 0 && (
-                <span style={{ position: 'absolute', top: -4, right: -4, background: '#fff', color: '#000', fontSize: '9px', fontWeight: 'bold', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {itemCount}
-                </span>
-              )}
+              {itemCount > 0 && <span className="cnt">{itemCount}</span>}
             </button>
           </div>
         </div>

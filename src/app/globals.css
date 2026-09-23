@@ -272,9 +272,11 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 #bnav{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;background:var(--wt);border-top:1px solid var(--gy);
   padding-bottom:env(safe-area-inset-bottom)}
 #bnav ul{display:grid;grid-template-columns:repeat(5,1fr)}
-#bnav a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0 8px;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#888}
-#bnav a svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7}
-#bnav a.on{color:var(--bk)}
+/* Search is a <button>, not a link — it opens the overlay. It has to be styled
+   alongside the anchors or it renders with no layout and an unsized icon. */
+#bnav a,#bnav button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:10px 0 8px;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#888}
+#bnav a svg,#bnav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7}
+#bnav a.on,#bnav button.on{color:var(--bk)}
 @media(max-width:900px){
   #bnav{display:block}
   /* #bnav is 64px plus the home-indicator inset it pads itself with, so content

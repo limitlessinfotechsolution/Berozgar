@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "@/components/session-provider";
 
 const SOCIALS: [string, string][] = [
   ["INSTAGRAM", "https://instagram.com/"],
@@ -11,6 +12,7 @@ const SOCIALS: [string, string][] = [
 
 export function SiteFooter() {
   const pathname = usePathname();
+  const { isAuthenticated } = useSession();
   
   return (
     <>
@@ -102,7 +104,9 @@ export function SiteFooter() {
             </Link>
           </li>
           <li>
-            <Link href="/account" className={pathname === "/account" ? "on" : ""}>
+            {/* Same target as the header: /account is session-gated, so sending a
+                signed-out visitor there just bounces them. */}
+            <Link href={isAuthenticated ? "/account" : "/login"} className={pathname === "/account" ? "on" : ""}>
               <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"></path></svg>
               ACCOUNT
             </Link>
