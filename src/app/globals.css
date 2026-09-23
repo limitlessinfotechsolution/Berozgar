@@ -18,7 +18,9 @@ body{font-family:var(--f);background:var(--wt);color:var(--bk);font-size:16px;li
 img{max-width:100%;display:block}
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;background:none;border:0;cursor:pointer;color:inherit}
-input,select,textarea{font-family:inherit;font-size:15px}
+/* 16px is a hard floor, not a style choice: iOS Safari zooms the viewport when a
+   focused field is smaller, and never zooms back out — mid-checkout. */
+input,select,textarea{font-family:inherit;font-size:16px}
 ul{list-style:none}
 ::selection{background:var(--bk);color:var(--wt)}
 :focus-visible{outline:2px solid var(--ru);outline-offset:2px}
@@ -179,6 +181,9 @@ body.hdr-scrolled #mega{top:56px}
 .qsz:hover{background:var(--bk);color:var(--wt);border-color:var(--bk)}
 @media(hover:none){
   .qbtn{display:none}
+  /* The carousel is overflow-x:auto with scroll-snap, so it swipes natively.
+     The arrows only sit on top of the first and last card. */
+  .car-nav{display:none}
   .qfab{position:absolute;right:8px;bottom:8px;z-index:4;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);
     font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
   .pcard.soldout .qfab{display:none}
@@ -209,7 +214,7 @@ body.hdr-scrolled #mega{top:56px}
 /* ============ 09 HOME SECTIONS ============ */
 .drop-grid .pcard{animation:fadeup .7s var(--e) both}
 .drop-grid .pcard:nth-child(2){animation-delay:.08s}.drop-grid .pcard:nth-child(3){animation-delay:.16s}.drop-grid .pcard:nth-child(4){animation-delay:.24s}
-.editorial{position:relative;min-height:72vh;display:flex;align-items:flex-end;color:var(--wt);overflow:hidden}
+.editorial{position:relative;min-height:72svh;display:flex;align-items:flex-end;color:var(--wt);overflow:hidden}
 .editorial .plate{position:absolute;inset:0}
 .editorial-veil{position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.75))}
 .editorial-in{position:relative;z-index:2;padding:clamp(32px,5vw,72px) 0;width:100%}
@@ -272,8 +277,10 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 #bnav a.on{color:var(--bk)}
 @media(max-width:900px){
   #bnav{display:block}
-  body{padding-bottom:64px}
-  #cart-drawer,#mnav{padding-bottom:70px}
+  /* #bnav is 64px plus the home-indicator inset it pads itself with, so content
+     and the PDP's sticky bar have to clear both. See viewportFit in layout.tsx. */
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  #cart-drawer,#mnav{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
 }
 /* ============ 12 OVERLAYS ============ */
 #scrim,.scrim{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.55);opacity:0;visibility:hidden;transition:opacity var(--tn)}
@@ -306,13 +313,13 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .s-res b{font-size:13px;letter-spacing:.06em;text-transform:uppercase}
 .s-none{padding:32px 0;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
 /* quick sheet */
-#qsheet,.qsheet{left:0;right:0;bottom:0;top:auto;max-height:80vh;overflow-y:auto;border-radius:0;transform:translateY(102%);border-top:2px solid var(--bk)}
+#qsheet,.qsheet{left:0;right:0;bottom:0;top:auto;max-height:80svh;overflow-y:auto;border-radius:0;transform:translateY(102%);border-top:2px solid var(--bk)}
 #qsheet.open,.qsheet.open{transform:none}
-@media(min-width:901px){#qsheet,.qsheet{left:auto;right:0;width:400px;max-height:100vh;border-radius:0}}
+@media(min-width:901px){#qsheet,.qsheet{left:auto;right:0;width:400px;max-height:100svh;border-radius:0}}
 /* modal */
 #modal{position:fixed;inset:0;z-index:980;display:none;align-items:center;justify-content:center;padding:20px}
 #modal.open{display:flex}
-.modal-box{background:var(--wt);max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:28px;position:relative;border:2px solid var(--bk)}
+.modal-box{background:var(--wt);max-width:520px;width:100%;max-height:88svh;overflow-y:auto;padding:28px;position:relative;border:2px solid var(--bk)}
 /* toast */
 #toast{position:fixed;left:50%;bottom:84px;transform:translate(-50%,20px);z-index:1200;background:var(--bk);color:var(--wt);
   padding:14px 26px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:0;pointer-events:none;
@@ -400,7 +407,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .sfind .frow{margin-bottom:0}
 .sfind-res{margin-top:20px;font-size:15px}
 .sfind-res b{font-size:20px;letter-spacing:.06em}
-#sticky-cta{position:fixed;left:0;right:0;bottom:64px;z-index:880;background:var(--wt);border-top:1px solid var(--gy);
+#sticky-cta{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:880;background:var(--wt);border-top:1px solid var(--gy);
   display:none;align-items:center;justify-content:space-between;gap:14px;padding:10px 16px;transform:translateY(120%);transition:transform .3s var(--e)}
 @media(max-width:900px){#sticky-cta{display:flex}}
 #sticky-cta.show{transform:none}
@@ -463,7 +470,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .tl-i small{display:block;font-size:12px;color:#888;margin-top:2px}
 .tl-i.done small,.tl-i.cur small{color:var(--bk)}
 /* ============ 16 SUCCESS / ACCOUNT ============ */
-.success{min-height:60vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:60px 0}
+.success{min-height:60svh;display:flex;align-items:center;justify-content:center;text-align:center;padding:60px 0}
 .acc-lay{display:grid;grid-template-columns:230px 1fr;gap:clamp(24px,4vw,64px);align-items:start}
 @media(max-width:900px){.acc-lay{grid-template-columns:1fr}}
 .acc-side{position:sticky;top:calc(var(--hdr) + 20px)}
@@ -489,7 +496,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .addr-act button{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#888}
 .addr-act button:hover{color:var(--bk)}
 /* ============ 17 EDITORIAL PAGES ============ */
-.mani-sec{min-height:88vh;display:flex;align-items:center}
+.mani-sec{min-height:88svh;display:flex;align-items:center}
 .mani-sec .big{font-weight:900;text-transform:uppercase;letter-spacing:-.03em;line-height:.95;font-size:clamp(2.6rem,9vw,8.5rem)}
 .mani-sec .big em{font-style:normal;color:var(--ru)}
 .vals{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--dk)}
@@ -497,9 +504,25 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .vals b{font-size:13px;letter-spacing:.14em;text-transform:uppercase;display:block}
 .vals span{font-size:12px;color:#999}
 @media(max-width:760px){.vals{grid-template-columns:1fr}}
-.lookdet-hero{aspect-ratio:16/9;max-height:72vh}
+.lookdet-hero{aspect-ratio:16/9;max-height:72svh}
 .jfeat .plate{aspect-ratio:16/8}
-.err{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0}
+.err{min-height:70svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0}
+/* ============ 17b TOUCH TARGETS ============ */
+/*
+ * 44px is the iOS/WCAG minimum for a tap target. Scoped to coarse pointers so the
+ * desktop layout keeps its density — this is about what a thumb can hit, not how
+ * the design looks. .cl, .sz and .qty button already clear 44 and are left alone.
+ */
+@media(pointer:coarse){
+  .chip{min-height:44px}
+  .qsz{min-height:44px}
+  .ci .qty button{width:44px;height:44px}
+  .xbtn{width:44px;height:44px}
+  .wish{width:44px;height:44px}
+  .sortsel select{min-height:44px}
+  .acc-side a{padding:14px 0}
+  .addr-act button{min-height:44px;display:inline-flex;align-items:center}
+}
 /* ============ 18 REVEAL / MOTION ============ */
 [data-rev]{opacity:0;transform:translateY(26px);transition:opacity .7s var(--e),transform .7s var(--e)}
 [data-rev].in{opacity:1;transform:none}

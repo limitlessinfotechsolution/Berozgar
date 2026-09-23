@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
 import { CartProvider } from "@/components/cart-provider";
 import { CatalogueProvider } from "@/components/catalogue-provider";
@@ -23,6 +23,20 @@ export const metadata: Metadata = {
   keywords: "Berozgar,streetwear,india,drop 001,oversized tee,heavyweight cotton",
 };
 
+/*
+ * viewportFit: "cover" is what makes env(safe-area-inset-*) resolve to anything.
+ * Without it those values are 0, and #bnav's safe-area padding in globals.css was
+ * a no-op — the fixed bottom nav sat under the home indicator on notched phones.
+ *
+ * Deliberately no maximumScale / userScalable: blocking pinch-zoom would stop
+ * anyone enlarging the page to read it.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -39,7 +53,9 @@ export default async function RootLayout({
         <CatalogueProvider products={products} unavailable={unavailable}>
           <SessionProvider>
             <CartProvider>
-              <div className="brz-reset flex flex-col min-h-screen">
+              {/* dvh rather than the screen utility, which compiles to 100vh — on mobile
+                  that is the largest viewport and leaves a dead scroll under short pages. */}
+              <div className="brz-reset flex flex-col min-h-dvh">
                 <div id="grain" aria-hidden="true"></div>
                 <SiteHeader />
                 <main id="app" className="flex-1">{children}</main>
