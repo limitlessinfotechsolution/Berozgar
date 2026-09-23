@@ -23,3 +23,14 @@
   # It feeds canonical URLs, the sitemap, robots.txt and OG image URLs, so it
   # must be the real origin before the site is indexed.
   NEXT_PUBLIC_SITE_URL = "https://berozgari.netlify.app"
+
+  # TEMPORARY — a cloudflared quick tunnel to the ERP running on a laptop
+  # (localhost:3001). Quick-tunnel URLs are random and are reissued every time
+  # cloudflared restarts, so this line goes stale the moment the tunnel drops:
+  # the deployed site then falls back to an empty catalogue.
+  #
+  # Reissue with:  cloudflared tunnel --url http://localhost:3001
+  # then update this value and push, which redeploys.
+  #
+  # Replace with a stable ERP origin once the ERP is actually hosted.
+  ERP_API_URL = "https://framework-farmer-den-mambo.trycloudflare.com"
