@@ -8,7 +8,8 @@ import { useSession } from "@/components/session-provider";
 import { RevealObserver } from "@/components/reveal-observer";
 import { showToast } from "@/lib/ui-events";
 import { writeStored } from "@/lib/use-hydrated";
-import { LAST_ORDER_KEY } from "@/lib/tracking";
+import { LAST_ORDER_KEY, rememberOrder } from "@/lib/tracking";
+import { payWithRazorpay, type RazorpayOrder } from "@/lib/razorpay";
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 /* ERP money is a decimal string; format it without summing floats. */
@@ -35,6 +36,9 @@ type Delivery = {
   pincode: string;
 };
 
+/* An order the ERP has created and that is waiting for its online payment. */
+type PendingPayment = { orderId: string; grandTotal: string; razorpay: RazorpayOrder };
+
 type Quote = {
   totals: { productCost: string; shipping: string; subtotal: string; gst: string; grandTotal: string } | null;
   lines: { variantId: string; reason: string; available?: number }[];
@@ -59,6 +63,9 @@ export default function CheckoutPage() {
   const [policies, setPolicies] = useState<{ slug: string; version: string }[]>([]);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingPayment | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payFailure, setPayFailure] = useState<string | null>(null);
   /* The last quote received, tagged with the bag + shipping it priced. */
   const [quoteResult, setQuoteResult] = useState<{ key: string; value: Quote | "error" } | null>(null);
 
@@ -119,6 +126,81 @@ export default function CheckoutPage() {
   /* A quote for a different bag (or none yet) means one is on its way. */
   const quote: Quote | "loading" | "error" | null =
     step !== 4 ? null : quoteResult?.key === quoteKey ? quoteResult.value : "loading";
+
+  /*
+   * The order exists and its stock is held; only the money is outstanding. The
+   * bag is already cleared (so a second PLACE ORDER can't duplicate it), which is
+   * why this renders ahead of the empty-bag state.
+   */
+  async function startPayment(p: PendingPayment) {
+    if (paying) return;
+    setPaying(true);
+    setPayFailure(null);
+    const success = `/checkout/success?id=${encodeURIComponent(p.orderId)}`;
+    try {
+      const outcome = await payWithRazorpay(
+        p.razorpay,
+        { name: `${delivery.first} ${delivery.last}`.trim(), email, contact: delivery.phone },
+        p.orderId
+      );
+      if (outcome.kind === "paid") {
+        const verified = await fetch("/api/checkout/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            razorpayOrderId: outcome.result.razorpay_order_id,
+            razorpayPaymentId: outcome.result.razorpay_payment_id,
+            razorpaySignature: outcome.result.razorpay_signature,
+          }),
+        }).then((r) => r.ok, () => false);
+        // Razorpay has the money either way; if our check didn't answer, its
+        // webhook settles the order, so the page says "confirming", not "failed".
+        showToast(verified ? "PAYMENT RECEIVED" : "PAYMENT CONFIRMING");
+        router.push(`${success}&pay=${verified ? "paid" : "confirming"}`);
+        return;
+      }
+      setPayFailure(outcome.kind === "failed" ? outcome.reason : "Payment window closed before paying.");
+    } catch (error) {
+      setPayFailure(error instanceof Error ? error.message : "The payment window couldn't open.");
+    }
+    setPaying(false);
+  }
+
+  if (pending) {
+    return (
+      <div className="page-fade">
+        <div className="wrap">
+          <div className="success">
+            <p className="cap mut">ORDER #{pending.orderId} — RESERVED FOR YOU</p>
+            <h1 className="h1" style={{ margin: "16px 0" }}>COMPLETE PAYMENT</h1>
+            <p className="small mut" style={{ maxWidth: "460px", margin: "0 auto" }}>
+              Your items are held. Pay {inrDecimal(pending.grandTotal)} to confirm the order.
+            </p>
+            {payFailure && (
+              <div className="co-fail inline" role="alert" style={{ maxWidth: "460px", margin: "22px auto 0", textAlign: "left" }}>
+                <b className="cap">PAYMENT NOT COMPLETED</b>
+                <p className="small" style={{ marginTop: "6px" }}>
+                  Nothing was charged. Try again, or use a different method in the payment window.
+                </p>
+                <p className="small mut" style={{ marginTop: "6px" }}>{payFailure}</p>
+              </div>
+            )}
+            <div style={{ display: "grid", gap: "10px", maxWidth: "360px", margin: "28px auto 0" }}>
+              <button className="btn btn-full" onClick={() => startPayment(pending)} disabled={paying}>
+                {paying ? "OPENING PAYMENT…" : `${payFailure ? "RETRY PAYMENT" : "PAY NOW"} — ${inrDecimal(pending.grandTotal)}`}
+              </button>
+              <Link
+                href={`/checkout/success?id=${encodeURIComponent(pending.orderId)}&pay=online`}
+                className="btn btn-o btn-full"
+              >
+                PAY LATER
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -183,7 +265,17 @@ export default function CheckoutPage() {
       }
 
       writeStored(LAST_ORDER_KEY, { id: data.orderId, phone: delivery.phone });
+      rememberOrder(data.orderId, delivery.phone);
       clear();
+
+      if (data.razorpay) {
+        const next: PendingPayment = { orderId: data.orderId, grandTotal: data.grandTotal, razorpay: data.razorpay };
+        setPending(next);
+        setPlacing(false);
+        void startPayment(next);
+        return;
+      }
+
       showToast(`ORDER PLACED — #${data.orderId}`);
       router.push(`/checkout/success?id=${encodeURIComponent(data.orderId)}&pay=${payment === "cod" ? "cod" : "online"}`);
     } catch (error) {
@@ -331,8 +423,8 @@ export default function CheckoutPage() {
               ))}
               {payment !== "cod" && (
                 <p className="small mut" style={{ marginTop: "14px" }}>
-                  Online payment isn&apos;t live yet — your order will be placed now and we&apos;ll send a payment
-                  link to your phone. Nothing is charged at this step.
+                  You&apos;ll pay securely through Razorpay after reviewing your order. Nothing is charged at
+                  this step.
                 </p>
               )}
               <div style={{ display: "grid", gap: "10px", marginTop: "22px" }}>

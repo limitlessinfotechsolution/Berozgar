@@ -31,7 +31,10 @@ export type Product = {
   gsm: string;
   fabric: string;
   fit: string;
-  drop: number;
+  /* Drop / collection name ("DROP 001"), or "" when the product isn't in one. */
+  collection: string;
+  /* ISO timestamp the product was created in the ERP, for NEWEST. */
+  createdAt: string;
   description: string;
   /* Units left when low enough to be worth saying ("ONLY 3 LEFT"), else null. */
   stock: number | null;

@@ -5,36 +5,31 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "@/components/session-provider";
 import { RevealObserver } from "@/components/reveal-observer";
+import { OrderActions } from "@/components/order-actions";
+import { OrderView } from "@/components/order-view";
 import { readStored, useHydrated } from "@/lib/use-hydrated";
-import {
-  LAST_ORDER_KEY,
-  TRACK_STEPS,
-  formatStamp,
-  statusDetail,
-  stepTimes,
-  trackStep,
-  type TrackedOrder,
-} from "@/lib/tracking";
+import { LAST_ORDER_KEY, rememberOrder, type TrackedOrder } from "@/lib/tracking";
 
-type Lookup =
+export type Lookup =
   | { state: "idle" }
   | { state: "loading" }
   | { state: "found"; order: TrackedOrder }
   | { state: "missing" }
   | { state: "error" };
 
-async function fetchOrder(id: string, phone: string): Promise<Lookup> {
+export async function fetchOrder(id: string, phone: string): Promise<Lookup> {
   try {
-    const res = await fetch(`/api/track?id=${encodeURIComponent(id)}&phone=${encodeURIComponent(phone)}`);
+    const res = await fetch(`/api/track?id=${encodeURIComponent(id)}&phone=${encodeURIComponent(phone)}`, { cache: "no-store" });
     if (res.status === 404) return { state: "missing" };
     if (!res.ok) return { state: "error" };
-    return { state: "found", order: (await res.json()) as TrackedOrder };
+    const order = (await res.json()) as TrackedOrder;
+    // Proven by number + phone: remember it for /account/orders on this device.
+    rememberOrder(order.orderNumber, phone);
+    return { state: "found", order };
   } catch {
     return { state: "error" };
   }
 }
-
-const inr = (s: string) => `₹${Number(s).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
 export function TrackOrderClient() {
   const searchParams = useSearchParams();
@@ -48,13 +43,19 @@ export function TrackOrderClient() {
   const saved = hydrated ? readStored<{ id?: string; phone?: string } | null>(LAST_ORDER_KEY, null) : null;
   const phone = phoneEdit ?? (saved?.id === orderId ? saved.phone : undefined) ?? user?.phone ?? "";
   const [result, setResult] = useState<Lookup>({ state: "idle" });
+  /* The phone the shown order was found with — what the invoice and claim calls prove ownership with. */
+  const [foundWith, setFoundWith] = useState("");
 
   /* Arriving from the success page with the order and its phone known: look it up straight away. */
   const autoPhone = saved?.id === initialId ? saved?.phone : undefined;
   useEffect(() => {
     if (!initialId || !autoPhone) return;
     let cancelled = false;
-    void fetchOrder(initialId, autoPhone).then((next) => { if (!cancelled) setResult(next); });
+    void fetchOrder(initialId, autoPhone).then((next) => {
+      if (cancelled) return;
+      setFoundWith(autoPhone);
+      setResult(next);
+    });
     return () => { cancelled = true; };
   }, [initialId, autoPhone]);
 
@@ -64,13 +65,19 @@ export function TrackOrderClient() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setResult({ state: "loading" });
-    setResult(await fetchOrder(orderId.trim().toUpperCase(), phone.trim()));
+    const typed = phone.trim();
+    setFoundWith(typed);
+    setResult(await fetchOrder(orderId.trim().toUpperCase(), typed));
   }
 
   const order = lookup.state === "found" ? lookup.order : null;
-  const step = order ? trackStep(order.status) : -1;
-  const times = order ? stepTimes(order) : [];
-  const terminal = order && (order.status === "CANCELLED" || order.status === "RETURNED");
+
+  /* After a claim or withdrawal: reload so the order shows the new state. */
+  async function refresh() {
+    if (!order) return;
+    const next = await fetchOrder(order.orderNumber, foundWith);
+    if (next.state === "found") setResult(next);
+  }
 
   return (
     <div className="page-fade">
@@ -117,47 +124,18 @@ export function TrackOrderClient() {
           <p className="small" style={{ marginTop: "20px" }}>Tracking is unavailable right now. Try again in a moment.</p>
         )}
 
-        {order && terminal && (
-          <div className="co-fail inline" role="status">
-            <b className="cap">{order.status === "CANCELLED" ? "ORDER CANCELLED" : "ORDER RETURNED"}</b>
-            <p className="small" style={{ marginTop: "6px" }}>
-              {order.status === "CANCELLED"
-                ? "This order was cancelled. If you paid for it, the refund goes back to the original method."
-                : "This order was returned. Your refund is being processed."}
-            </p>
-          </div>
-        )}
-
-        {order && !terminal && (
-          <div className="tl" data-rev="true">
-            {TRACK_STEPS.map((label, i) => (
-              <div key={label} className={`tl-i ${i < step ? "done" : ""} ${i === step ? "cur" : ""}`.replace(/\s+/g, " ").trim()}>
-                <b>
-                  {i <= step ? (i < step ? "✓ " : "● ") : "○ "}
-                  {label}
-                  {i === step && statusDetail(order.status) ? ` — ${statusDetail(order.status)}` : ""}
-                </b>
-                <small>{formatStamp(times[i] ?? null)}</small>
-              </div>
-            ))}
-          </div>
-        )}
-
         {order && (
-          <div style={{ marginTop: "28px" }}>
-            {order.items.map((item, i) => (
-              <div className="sumrow" key={`${item.slug}-${item.size}-${item.colour}-${i}`}>
-                <span className="small">
-                  <Link href={`/shop/${item.slug}`}>{item.name}</Link> — {item.size} / {item.colour} × {item.quantity}
-                </span>
-                <span className="num small">{inr(item.unitPrice)}</span>
-              </div>
-            ))}
-            <div className="sumrow tot">
-              <span>Total (incl. GST)</span>
-              <span className="num">{inr(order.totals.grandTotal)}</span>
-            </div>
-          </div>
+          <>
+            <OrderView order={order} />
+            <OrderActions order={order} phone={foundWith} onChanged={refresh} />
+            <Link
+              href={`/help/contact?order=${encodeURIComponent(order.orderNumber)}`}
+              className="tlink small"
+              style={{ marginTop: "14px", display: "inline-block" }}
+            >
+              NEED HELP WITH THIS ORDER? →
+            </Link>
+          </>
         )}
 
         <Link href="/account/orders" className="tlink" style={{ marginTop: "28px", display: "inline-block" }}>VIEW ALL ORDERS →</Link>

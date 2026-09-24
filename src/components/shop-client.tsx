@@ -2,54 +2,25 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProductCard } from "@/components/product-card";
 import { RevealObserver } from "@/components/reveal-observer";
-import { sizeAvailable, sortSizes, type Product } from "@/lib/products";
-import { categoriesOf } from "@/lib/catalogue-map";
+import { ShopFilterPanel } from "@/components/shop-filter-panel";
 import { ShopFilterSheet } from "@/components/shop-filter-sheet";
-
-const PRICE_CAPS: [string, string][] = [
-  ["999", "UNDER ₹999"],
-  ["1500", "UNDER ₹1,500"],
-  ["2500", "UNDER ₹2,500"],
-];
-
-type Query = Record<string, string>;
-
-function applyFilters(all: Product[], q: Query) {
-  let list = [...all];
-
-  if (q.cat && q.cat !== "all") {
-    list = list.filter((p) => p.category === q.cat);
-  }
-  if (q.size) {
-    list = list.filter((p) => p.sizes.includes(q.size) && sizeAvailable(p, q.size, null));
-  }
-  if (q.color) {
-    list = list.filter((p) => p.colors.includes(q.color.toUpperCase()));
-  }
-  if (q.avail === "instock") list = list.filter((p) => !p.soldout);
-  if (q.max) list = list.filter((p) => p.price <= Number(q.max));
-
-  /* Only sorts the ERP can actually answer. NEWEST needs `createdAt` on the public
-     product serialiser; BEST SELLING needs order volume. Neither is exposed today,
-     and both sorted on fields the mapper always leaves empty, so they did nothing. */
-  const sort = q.sort || "featured";
-  if (sort === "price-asc") {
-    list.sort((a, b) => a.price - b.price);
-  } else if (sort === "price-desc") {
-    list.sort((a, b) => b.price - a.price);
-  }
-  return list;
-}
-
-function buildHref(q: Query) {
-  const params = new URLSearchParams();
-  Object.entries(q).forEach(([k, v]) => { if (v) params.set(k, v); });
-  const s = params.toString();
-  return s ? `/shop?${s}` : "/shop";
-}
+import { categoriesOf } from "@/lib/catalogue-map";
+import type { Product } from "@/lib/products";
+import {
+  DROPS,
+  PAGE_SIZE,
+  SALE,
+  SORTS,
+  activeFilterCount,
+  applyFilters,
+  buildShopHref,
+  facetsOf,
+  visibleCount,
+  type Query,
+} from "@/lib/shop-filters";
 
 export function ShopClient({
   initialProducts,
@@ -63,19 +34,39 @@ export function ShopClient({
   const query: Query = Object.fromEntries(searchParams.entries());
 
   const results = applyFilters(initialProducts, query);
+  const shown = visibleCount(results.length, query.page);
+  const more = shown < results.length;
 
-  /* Every filter option comes from what the ERP catalogue actually holds. */
-  const categoryChips: [string, string][] = [
+  /* Every tab and filter option comes from what the ERP catalogue actually holds. */
+  const facets = facetsOf(initialProducts);
+  const tabs: [string, string][] = [
     ["all", "ALL"],
     ...categoriesOf(initialProducts).map((c): [string, string] => [c.slug, c.name]),
+    ...(facets.collections.length ? [[DROPS, "DROPS"] as [string, string]] : []),
+    ...(facets.hasSale ? [[SALE, "SALE"] as [string, string]] : []),
   ];
-  const sizes = sortSizes([...new Set(initialProducts.flatMap((p) => p.sizes))]);
-  const colors = [...new Set(initialProducts.flatMap((p) => p.colors))];
-  const activeCat = query.cat || "all";
-  const activeFilters = Object.keys(query).filter((k) => k !== "sort").length;
+  const activeTab = query.cat || "all";
+  const filterCount = activeFilterCount(query);
 
   const [sheet, setSheet] = useState<"filter" | "sort" | null>(null);
-  const go = (next: Query) => router.push(buildHref(next));
+  /* Filters replace rather than push: ten taps in the sheet shouldn't be ten Back presses. */
+  const go = (next: Query) => router.replace(buildShopHref(next), { scroll: false });
+  const loadMore = () => go({ ...query, page: String(Math.floor(shown / PAGE_SIZE) + 1) });
+
+  /* Infinite scroll: reaching the sentinel loads the next page. The button below
+     stays as the fallback, and for keyboard users. */
+  const sentinel = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef(loadMore);
+  useEffect(() => { loadMoreRef.current = loadMore; });
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !more) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMoreRef.current();
+    }, { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more, shown]);
 
   return (
     <div className="page-fade">
@@ -92,99 +83,57 @@ export function ShopClient({
           </p>
         </header>
 
-        <div className="cats" style={{ padding: "14px 0" }}>
-          {categoryChips.map(([slug, label]) => (
+        <nav className="cats" style={{ padding: "14px 0" }} aria-label="Shop sections">
+          {tabs.map(([slug, label]) => (
             <Link
               key={slug}
-              className={`chip ${activeCat === slug ? "on" : ""}`.trim()}
+              className={`chip ${activeTab === slug ? "on" : ""}`.trim()}
+              aria-current={activeTab === slug ? "page" : undefined}
               href={slug === "all" ? "/shop" : `/shop?cat=${slug}`}
             >
               {label}
             </Link>
           ))}
-        </div>
+        </nav>
 
         <div className="m-filterbar">
-          <button className="chip" onClick={() => setSheet("filter")}>FILTER +</button>
-          <button className="chip" onClick={() => setSheet("sort")}>SORT</button>
+          <button className="chip" onClick={() => setSheet("filter")}>
+            FILTER {filterCount ? `(${filterCount})` : "+"}
+          </button>
+          <button className="chip" onClick={() => setSheet("sort")}>
+            SORT: {(SORTS.find(([v]) => v === (query.sort || "featured")) ?? SORTS[0])[1].split(":")[0]}
+          </button>
         </div>
 
         <div className="shop-lay" style={{ paddingBottom: "80px" }}>
-          <aside className="shop-side">
-            <div className="fgrp">
-              <h4>SIZE</h4>
-              {sizes.map((size) => (
-                <label className="ck" key={size}>
-                  <input
-                    type="checkbox"
-                    checked={query.size === size}
-                    onChange={(e) => go({ ...query, size: e.target.checked ? size : "" })}
-                  /> {size}
-                </label>
-              ))}
-            </div>
-
-            <div className="fgrp">
-              <h4>COLOR</h4>
-              {colors.map((color) => (
-                <label className="ck" key={color}>
-                  <input
-                    type="checkbox"
-                    checked={(query.color || "").toUpperCase() === color}
-                    onChange={(e) => go({ ...query, color: e.target.checked ? color : "" })}
-                  /> {color}
-                </label>
-              ))}
-            </div>
-
-            <div className="fgrp">
-              <h4>PRICE</h4>
-              {PRICE_CAPS.map(([value, label]) => (
-                <label className="ck" key={value}>
-                  <input
-                    type="checkbox"
-                    checked={query.max === value}
-                    onChange={(e) => go({ ...query, max: e.target.checked ? value : "" })}
-                  /> {label}
-                </label>
-              ))}
-            </div>
-
-            <div className="fgrp">
-              <h4>AVAILABILITY</h4>
-              <label className="ck">
-                <input
-                  type="checkbox"
-                  checked={query.avail === "instock"}
-                  onChange={(e) => go({ ...query, avail: e.target.checked ? "instock" : "" })}
-                /> IN STOCK
-              </label>
-            </div>
-
-            <button className="tlink" style={{ border: 0 }} onClick={() => router.push("/shop")}>
-              CLEAR ALL ✕
-            </button>
+          <aside className="shop-side" aria-label="Filters">
+            <ShopFilterPanel facets={facets} query={query} onChange={go} />
+            {filterCount > 0 && (
+              <button className="tlink" style={{ border: 0 }} onClick={() => go({ cat: query.cat || "", sort: query.sort || "" })}>
+                CLEAR ALL ✕
+              </button>
+            )}
           </aside>
 
           <div>
             <div className="shop-top">
-              <span className="cap mut only-d">FILTER: {activeFilters || "NONE"}</span>
+              <span className="cap mut only-d">FILTER: {filterCount || "NONE"}</span>
               <label className="sortsel only-d">
-                <span className="cap mut">SORT</span>
+                <span className="cap mut">SORT BY</span>
                 <select
                   value={query.sort || "featured"}
-                  onChange={(e) => go({ ...query, sort: e.target.value })}
+                  onChange={(e) => go({ ...query, sort: e.target.value, page: "" })}
                 >
-                  <option value="featured">FEATURED</option>
-                  <option value="price-asc">PRICE: LOW → HIGH</option>
-                  <option value="price-desc">PRICE: HIGH → LOW</option>
+                  {SORTS.map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
               </label>
             </div>
 
             <div id="shop-grid" className="grid3">
               {results.length ? (
-                results.map((product) => <ProductCard key={product.id} product={product} />)
+                results.slice(0, shown).map((product) => <ProductCard key={product.id} product={product} />)
               ) : unavailable ? (
                 /* The ERP did not answer. Say so — an outage dressed up as an
                    empty shop is how a broken deploy goes unnoticed. */
@@ -202,10 +151,24 @@ export function ShopClient({
                 <div className="empty" style={{ gridColumn: "1 / -1" }}>
                   <h2 className="h3">NO RESULTS.</h2>
                   <p>Try removing a filter.</p>
-                  <button className="btn btn-o" onClick={() => router.push("/shop")}>CLEAR FILTERS</button>
+                  <button className="btn btn-o" onClick={() => go({})}>CLEAR FILTERS</button>
                 </div>
               )}
             </div>
+
+            {results.length > 0 && (
+              <div style={{ textAlign: "center", marginTop: "36px" }}>
+                <p className="small mut">SHOWING {shown} OF {results.length}</p>
+                {more && (
+                  <>
+                    <div ref={sentinel} aria-hidden="true" />
+                    <button className="btn btn-o" style={{ marginTop: "14px" }} onClick={loadMore}>
+                      LOAD MORE
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -213,8 +176,9 @@ export function ShopClient({
       <ShopFilterSheet
         kind={sheet}
         query={query}
-        sizes={sizes}
-        onApply={(next) => { go(next); setSheet(null); }}
+        facets={facets}
+        resultCount={results.length}
+        onChange={go}
         onClose={() => setSheet(null)}
       />
     </div>

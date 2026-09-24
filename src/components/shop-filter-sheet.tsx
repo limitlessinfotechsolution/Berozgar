@@ -1,28 +1,24 @@
 "use client";
 
-type Query = Record<string, string>;
-
-/* Kept in step with applyFilters() in shop-client.tsx — only sorts the ERP can answer. */
-const SORTS: [string, string][] = [
-  ["featured", "FEATURED"],
-  ["price-asc", "PRICE: LOW → HIGH"],
-  ["price-desc", "PRICE: HIGH → LOW"],
-];
+import { ShopFilterPanel } from "@/components/shop-filter-panel";
+import { SORTS, type Facets, type Query } from "@/lib/shop-filters";
 
 /* Mobile-only filter/sort sheet. Shares #qsheet's styling via the .qsheet class
-   so it doesn't duplicate that id. */
+   so it doesn't duplicate that id. Filters apply as they're tapped, so the count
+   on the footer button is always the real result; sorting closes the sheet. */
 export function ShopFilterSheet({
   kind,
   query,
-  sizes,
-  onApply,
+  facets,
+  resultCount,
+  onChange,
   onClose,
 }: {
   kind: "filter" | "sort" | null;
   query: Query;
-  /* The sizes the catalogue actually stocks. */
-  sizes: string[];
-  onApply: (next: Query) => void;
+  facets: Facets;
+  resultCount: number;
+  onChange: (next: Query) => void;
   onClose: () => void;
 }) {
   const open = kind !== null;
@@ -38,41 +34,19 @@ export function ShopFilterSheet({
               <b>FILTER</b>
               <button className="xbtn" aria-label="Close" onClick={onClose}>✕</button>
             </div>
-            <div style={{ padding: "8px 22px 30px" }}>
-              <div className="fgrp">
-                <h4>SIZE</h4>
-                <div className="szrow">
-                  {sizes.map((size) => (
-                    <button
-                      key={size}
-                      className={`sz ${query.size === size ? "on" : ""}`.trim()}
-                      onClick={() => onApply({ ...query, size: query.size === size ? "" : size })}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="fgrp">
-                <h4>AVAILABILITY</h4>
-                <label className="ck">
-                  <input
-                    type="checkbox"
-                    checked={query.avail === "instock"}
-                    onChange={(e) => onApply({ ...query, avail: e.target.checked ? "instock" : "" })}
-                  /> IN STOCK ONLY
-                </label>
-              </div>
-              <div className="fgrp">
-                <h4>PRICE</h4>
-                <label className="ck">
-                  <input
-                    type="checkbox"
-                    checked={query.max === "1500"}
-                    onChange={(e) => onApply({ ...query, max: e.target.checked ? "1500" : "" })}
-                  /> UNDER ₹1,500
-                </label>
-              </div>
+            <div style={{ padding: "8px 22px 0" }}>
+              <ShopFilterPanel facets={facets} query={query} onChange={onChange} touch />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "10px", padding: "12px 22px 26px" }}>
+              <button
+                className="btn btn-o"
+                onClick={() => onChange({ cat: query.cat || "", sort: query.sort || "" })}
+              >
+                CLEAR
+              </button>
+              <button className="btn" onClick={onClose}>
+                SHOW {resultCount} RESULT{resultCount === 1 ? "" : "S"}
+              </button>
             </div>
           </>
         )}
@@ -91,6 +65,7 @@ export function ShopFilterSheet({
                     <button
                       key={value}
                       className="sz"
+                      aria-pressed={active}
                       style={{
                         width: "100%",
                         justifyContent: "flex-start",
@@ -102,7 +77,7 @@ export function ShopFilterSheet({
                         color: active ? "var(--wt)" : "var(--bk)",
                         borderColor: active ? "var(--bk)" : "#ccc",
                       }}
-                      onClick={() => onApply({ ...query, sort: value })}
+                      onClick={() => { onChange({ ...query, sort: value, page: "" }); onClose(); }}
                     >
                       {label}
                     </button>

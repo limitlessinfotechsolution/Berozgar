@@ -5,16 +5,18 @@ import type { Product } from "@/lib/products";
 import { useCart } from "@/components/cart-provider";
 import { ProductPlate } from "@/components/product-plate";
 import { openQuickAdd, showToast } from "@/lib/ui-events";
+import { discountPercent } from "@/lib/shop-filters";
 
 export function ProductCard({ product }: { product: Product }) {
   const { toggleWishlist, inWishlist } = useCart();
   const saved = inWishlist(product.id);
 
   // Exactly one badge — .badge is absolutely positioned, so a second would
-  // sit directly on top of the first.
+  // sit directly on top of the first. The drop is shown under the name instead.
+  const off = discountPercent(product);
   const badge =
     product.soldout ? { className: "badge sold", text: "SOLD OUT" }
-    : product.compareAt ? { className: "badge sale", text: "SALE" }
+    : off ? { className: "badge sale", text: `−${off}%` }
     : product.stock ? { className: "badge low", text: `ONLY ${product.stock} LEFT` }
     : product.badges[0] ? { className: "badge", text: product.badges[0] }
     : null;
@@ -59,6 +61,7 @@ export function ProductCard({ product }: { product: Product }) {
       </Link>
 
       <div className="pcard-info">
+        {product.collection && <span className="cap mut" style={{ fontSize: "10px" }}>{product.collection}</span>}
         <Link className="nm" href={`/shop/${product.slug}`}>{product.name}</Link>
         {product.compareAt ? (
           <span className="price">

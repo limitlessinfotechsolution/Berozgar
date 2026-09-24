@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { erpUrl } from "@/lib/catalogue";
 
 /*
@@ -6,9 +7,10 @@ import { erpUrl } from "@/lib/catalogue";
  * the browser never talks to the ERP directly (no CORS, no ERP URL in the bundle)
  * and the client IP is forwarded for the ERP's rate limit and audit trail.
  *
- * Contract with the checkout page (unchanged from the mock): `{ success: true,
- * orderId }` on success; anything else is a failure and must not be shown as an
- * order. The ERP prices the order itself — this route never sends a total.
+ * Contract with the checkout page: `{ success: true, orderId, razorpay }` on
+ * success, where `razorpay` is the order to pay against (null for COD, or when
+ * online payment isn't available); anything else is a failure and must not be
+ * shown as an order. The ERP prices the order itself — this route never sends a total.
  */
 
 type LineProblem = { variantId: string; reason: "unknown" | "unavailable" | "insufficient_stock"; available?: number };
@@ -63,5 +65,12 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ success: true, orderId: body.orderId, grandTotal: body.grandTotal });
+  // The order just allocated stock, so the catalogue's availability moved.
+  revalidateTag("catalogue", { expire: 0 });
+  return NextResponse.json({
+    success: true,
+    orderId: body.orderId,
+    grandTotal: body.grandTotal,
+    razorpay: body.razorpay ?? null,
+  });
 }

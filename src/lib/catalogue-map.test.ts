@@ -58,6 +58,19 @@ describe("toProduct", () => {
     expect(p).not.toHaveProperty("reviews");
   });
 
+  it("maps the ERP's optional merchandising when it is set", () => {
+    const p = toProduct(
+      erp({ compareAtPrice: "599.00", fit: "oversized", collection: "Drop 001", badge: "new", createdAt: "2026-09-20T00:00:00Z" })
+    );
+    expect(p).toMatchObject({
+      compareAt: 599,
+      fit: "OVERSIZED",
+      collection: "DROP 001",
+      badges: ["NEW"],
+      createdAt: "2026-09-20T00:00:00Z",
+    });
+  });
+
   it("uses uploaded images in order", () => {
     const p = toProduct(erp({ images: [{ id: "i1", url: "a.jpg" }, { id: "i2", url: "b.jpg" }] }));
     expect(p.images).toEqual(["a.jpg", "b.jpg"]);

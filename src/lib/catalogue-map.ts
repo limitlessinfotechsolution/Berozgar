@@ -4,9 +4,9 @@ import { slugify, sortSizes, type Product } from "@/lib/products";
  * ERP → storefront mapping. Pure, so it can be unit tested and shared by the
  * server data layer without pulling in fetch.
  *
- * The ERP catalogue has no sale price, badges, apparel specs, reviews or drops
- * (docs/INTEGRATION.md §2). Those map to honest empties, and the UI hides what
- * is empty rather than inventing it.
+ * Merchandising (compare-at price, fit, collection, badge) is optional in the
+ * ERP; GSM, fabric and reviews aren't held at all. Anything absent maps to an
+ * honest empty, and the UI hides what is empty rather than inventing it.
  */
 
 /* Wire shape of GET /api/public/v1/products — money is a decimal string. */
@@ -17,6 +17,12 @@ export type ErpProduct = {
   name: string;
   description: string | null;
   basePrice: string;
+  /* Only sent when it is a real discount (above basePrice). */
+  compareAtPrice?: string | null;
+  fit?: string | null;
+  collection?: string | null;
+  badge?: string | null;
+  createdAt?: string;
   category: { id: string; name: string } | null;
   images: { id: string; url: string }[];
   variants: { id: string; size: string; colour: string; stock: number }[];
@@ -53,17 +59,18 @@ export function toProduct(p: ErpProduct): Product {
     name,
     word: (name.split(/\s+/)[0] ?? "BRZ").slice(0, 10),
     price: displayPrice(p.basePrice),
-    compareAt: null,
+    compareAt: p.compareAtPrice ? displayPrice(p.compareAtPrice) : null,
     category: slugify(categoryName),
     categoryName,
     colors,
     sizes,
     oos,
-    badges: [],
+    badges: p.badge ? [p.badge.toUpperCase()] : [],
     gsm: "",
     fabric: "",
-    fit: "",
-    drop: 0,
+    fit: (p.fit ?? "").toUpperCase(),
+    collection: (p.collection ?? "").toUpperCase(),
+    createdAt: p.createdAt ?? "",
     description: p.description ?? "",
     stock: total > 0 && total <= LOW_STOCK_AT ? total : null,
     soldout: variants.length === 0 || total === 0,
