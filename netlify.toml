@@ -47,4 +47,4 @@
   # REVALIDATE_SECRET must NEVER move here — NEXT_PUBLIC_ or not, this file is
   # committed, and a NEXT_PUBLIC_ secret would also ship in client JS. It stays a
   # Netlify UI variable.
-  NEXT_PUBLIC_ERP_API_URL = "https://sender-basics-railroad-loans.trycloudflare.com"
+  NEXT_PUBLIC_ERP_API_URL = "https://conferences-clusters-transcripts-allen.trycloudflare.com"
