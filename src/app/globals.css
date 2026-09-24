@@ -44,29 +44,29 @@ ul{list-style:none}
 .sec{padding:clamp(56px,8vw,110px) 0}
 .sec-of{background:var(--of)}
 .sec-bk{background:var(--bk);color:var(--wt)}
-.sec-t{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:clamp(24px,4vw,48px)}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(12px,2vw,28px)}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,2vw,28px)}
-.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(12px,2vw,28px)}
+.sec-t{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:clamp(24px,4vw,48px)}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(12px,2vw,28px)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,28px)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,2vw,28px)}
 .only-m{display:none!important}
 @media(max-width:900px){
-  .grid4{grid-template-columns:repeat(2,1fr)}
-  .grid3{grid-template-columns:repeat(2,1fr)}
+  .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid3{grid-template-columns:repeat(2,minmax(0,1fr))}
   .only-d{display:none!important}
   .only-m{display:block!important}
 }
 /* .grid3 deliberately stays two-up on phones: it is also the shop's product grid. */
-@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+@media(max-width:560px){.grid2{grid-template-columns:minmax(0,1fr)}}
 /* Editorial card grids (journal, collections). Unlike .grid3, which doubles as the
    shop's product grid, these carry a handful of text-led cards, and a trailing card
    alone in a two-column row reads as a broken layout rather than as a gap. */
-.grid-ed{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,2vw,28px)}
+.grid-ed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,2vw,28px)}
 @media(max-width:900px){
-  .grid-ed{grid-template-columns:repeat(2,1fr)}
+  .grid-ed{grid-template-columns:repeat(2,minmax(0,1fr))}
   /* Odd count: the last card fills the row instead of leaving a hole beside it. */
   .grid-ed>:last-child:nth-child(odd){grid-column:1/-1}
 }
-@media(max-width:560px){.grid-ed{grid-template-columns:1fr}}
+@media(max-width:560px){.grid-ed{grid-template-columns:minmax(0,1fr)}}
 /* ============ 04 BUTTONS / INPUTS / UI ============ */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 32px;
   font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--bk);
@@ -90,8 +90,8 @@ ul{list-style:none}
 .inp:focus{border-color:var(--bk);outline:none}
 .inp::placeholder{color:#999}
 label.fl{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin:0 0 6px}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:560px){.frow{grid-template-columns:1fr}}
+.frow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media(max-width:560px){.frow{grid-template-columns:minmax(0,1fr)}}
 .fgrp{margin-bottom:16px}
 .chip{display:inline-flex;align-items:center;min-height:36px;padding:0 16px;border:1px solid #ccc;font-size:12px;
   letter-spacing:.08em;text-transform:uppercase;font-weight:600;transition:all var(--tf);cursor:pointer;background:transparent}
@@ -152,7 +152,7 @@ body.hdr-scrolled .hdr-in{height:56px}
   opacity:0;visibility:hidden;transform:translateY(-8px);transition:all var(--tn) var(--e)}
 body.hdr-scrolled #mega{top:56px}
 #mega.open{opacity:1;visibility:visible;transform:none}
-.mega-in{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:48px;padding:40px clamp(16px,4vw,48px);max-width:1360px;margin:0 auto}
+.mega-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr);gap:48px;padding:40px clamp(16px,4vw,48px);max-width:1360px;margin:0 auto}
 .mega-in h4{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#888;margin-bottom:16px}
 .mega-in a.mg{display:block;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:7px 0;transition:transform var(--tf)}
 .mega-in a.mg:hover{transform:translateX(6px);color:var(--ru)}
@@ -196,7 +196,7 @@ body.hdr-scrolled #mega{top:56px}
 @keyframes kb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.08) translate(-2%,1.5%)}}
 .hero-bg .plate{position:absolute;inset:0}
 .hero-veil{position:absolute;inset:0;background:radial-gradient(120% 90% at 30% 40%,rgba(0,0,0,.15),rgba(0,0,0,.72))}
-.hero-in{position:relative;z-index:2;padding:80px 0;width:100%}
+.hero-in{position:relative;z-index:2;padding-block:80px;width:100%}
 .hero .d-xl span{display:block;overflow:hidden}
 .hero .d-xl span i{display:block;font-style:normal;transform:translateY(110%);animation:rise .9s var(--e) forwards}
 .hero .d-xl span:nth-child(2) i{animation-delay:.12s}
@@ -233,7 +233,7 @@ body.hdr-scrolled #mega{top:56px}
   opacity:.12;transform:translateY(24px);transition:opacity .8s var(--e),transform .8s var(--e)}
 .manif-line.in{opacity:1;transform:none}
 .manif-line em{font-style:normal;color:var(--ru)}
-.lookgrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(12px,2vw,24px)}
+.lookgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(12px,2vw,24px)}
 .looktile{position:relative;display:block;overflow:hidden;background:var(--ch)}
 .looktile .plate{transition:transform .6s var(--e)}
 .looktile:hover .plate{transform:scale(1.03)}
@@ -258,7 +258,7 @@ body.hdr-scrolled #mega{top:56px}
 .nl-done{margin-top:28px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
 /* ============ 10 FOOTER ============ */
 footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;margin-top:0}
-.f-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:32px}
+.f-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:32px}
 .f-grid h5{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#777;margin-bottom:18px}
 .f-grid a{display:block;font-size:13px;padding:5px 0;color:#ccc;transition:color var(--tf)}
 .f-grid a:hover{color:var(--wt)}
@@ -266,14 +266,14 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .f-bottom small{font-size:11px;letter-spacing:.1em;color:#777;text-transform:uppercase}
 .f-soc{display:flex;gap:18px;font-size:11px;letter-spacing:.16em;font-weight:700;text-transform:uppercase}
 @media(max-width:900px){
-  .f-grid{grid-template-columns:1fr 1fr}
+  .f-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   /* Five columns into two rows leaves the last one alone — let it fill instead. */
   .f-grid>:last-child:nth-child(odd){grid-column:1/-1}
 }
 /* ============ 11 BOTTOM NAV ============ */
 #bnav{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;background:var(--wt);border-top:1px solid var(--gy);
   padding-bottom:env(safe-area-inset-bottom)}
-#bnav ul{display:grid;grid-template-columns:repeat(5,1fr)}
+#bnav ul{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 /* Search is a <button>, not a link — it opens the overlay. It has to be styled
    alongside the anchors or it renders with no layout and an unsized icon. */
 #bnav a,#bnav button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:10px 0 8px;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#888}
@@ -331,8 +331,8 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 #toast.show{opacity:1;transform:translate(-50%,0)}
 @media(min-width:901px){#toast{bottom:32px}}
 /* ============ 13 SHOP ============ */
-.shop-lay{display:grid;grid-template-columns:240px 1fr;gap:clamp(24px,4vw,56px);align-items:start}
-@media(max-width:900px){.shop-lay{grid-template-columns:1fr}}
+.shop-lay{display:grid;grid-template-columns:240px minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:start}
+@media(max-width:900px){.shop-lay{grid-template-columns:minmax(0,1fr)}}
 .shop-side{position:sticky;top:calc(var(--hdr) + 24px)}
 @media(max-width:900px){.shop-side{display:none}}
 .fgrp h4{font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:12px}
@@ -352,9 +352,9 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .empty p{color:#777;margin-bottom:28px}
 /* ============ 14 PDP ============ */
 .crumb{display:flex;gap:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:20px 0 0;flex-wrap:wrap}
-.pdp{display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(24px,4vw,64px);padding:24px 0 0}
-@media(max-width:900px){.pdp{grid-template-columns:1fr}}
-.pgal{display:grid;grid-template-columns:76px 1fr;gap:14px;align-self:start;position:sticky;top:calc(var(--hdr) + 20px)}
+.pdp{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);padding:24px 0 0}
+@media(max-width:900px){.pdp{grid-template-columns:minmax(0,1fr)}}
+.pgal{display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px;align-self:start;position:sticky;top:calc(var(--hdr) + 20px)}
 /* The desktop gallery goes entirely: the full-bleed swipe track replaces it.
    It used to stay visible here, so a phone got the big static image AND the
    swipe track stacked under it — two galleries of the same product. */
@@ -417,7 +417,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .legal-notice code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--gy);padding:1px 5px}
 .acc.open .acc-b{display:block;animation:fadeup .3s var(--e)}
 .rev-sum{display:flex;gap:clamp(20px,4vw,56px);flex-wrap:wrap;align-items:flex-start;margin-bottom:32px}
-.bar-row{display:grid;grid-template-columns:76px 1fr 44px;align-items:center;gap:12px;font-size:12px;letter-spacing:.08em;margin-bottom:8px}
+.bar-row{display:grid;grid-template-columns:76px minmax(0,1fr) 44px;align-items:center;gap:12px;font-size:12px;letter-spacing:.08em;margin-bottom:8px}
 .bar{height:8px;background:var(--gy)}
 .bar i{display:block;height:100%;background:var(--bk)}
 .rev-card{border:1px solid var(--gy);padding:20px;margin-bottom:12px}
@@ -435,9 +435,9 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 #sticky-cta.show{transform:none}
 #sticky-cta .btn{min-height:46px;padding:0 22px;flex:1}
 /* ============ 15 CART / CHECKOUT ============ */
-.cart-lay{display:grid;grid-template-columns:1.5fr 1fr;gap:clamp(24px,4vw,64px);align-items:start}
-@media(max-width:900px){.cart-lay{grid-template-columns:1fr}}
-.ci{display:grid;grid-template-columns:92px 1fr auto;gap:16px;padding:18px 0;border-bottom:1px solid var(--gy)}
+.cart-lay{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);align-items:start}
+@media(max-width:900px){.cart-lay{grid-template-columns:minmax(0,1fr)}}
+.ci{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:16px;padding:18px 0;border-bottom:1px solid var(--gy)}
 .ci .th{aspect-ratio:3/4}
 .ci .nm{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .ci .mt{font-size:12px;color:#888;margin:4px 0 10px;letter-spacing:.06em;text-transform:uppercase}
@@ -445,7 +445,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .ci .rm{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-top:10px}
 .ci .rm:hover{color:var(--ru)}
 .coupon{display:flex;gap:0;border:1px solid var(--bk);margin:18px 0}
-.coupon input{flex:1;border:0;padding:0 14px;min-height:46px;outline:none}
+.coupon input{flex:1;min-width:0;border:0;padding:0 14px;min-height:46px;outline:none}
 .coupon button{padding:0 18px;background:var(--bk);color:var(--wt);font-size:11px;font-weight:800;letter-spacing:.14em}
 .sumrow{display:flex;justify-content:space-between;font-size:14px;padding:7px 0}
 .sumrow.tot{font-weight:900;font-size:17px;text-transform:uppercase;border-top:1px solid var(--bk);margin-top:8px;padding-top:14px}
@@ -459,8 +459,8 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .co-steps button{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#aaa;transition:color var(--tf)}
 .co-steps button.on{color:var(--bk)}
 .co-steps button.done{color:var(--ru)}
-.co-lay{display:grid;grid-template-columns:1.4fr 1fr;gap:clamp(24px,4vw,72px);padding:40px 0 80px;align-items:start}
-@media(max-width:900px){.co-lay{grid-template-columns:1fr}}
+.co-lay{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:clamp(24px,4vw,72px);padding:40px 0 80px;align-items:start}
+@media(max-width:900px){.co-lay{grid-template-columns:minmax(0,1fr)}}
 .co-panel h2{margin-bottom:24px}
 .pay-opt{display:block;border:1px solid #ccc;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all var(--tf)}
 .pay-opt.on{border-color:var(--bk);border-width:2px;padding:15px 17px}
@@ -493,8 +493,8 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .tl-i.done small,.tl-i.cur small{color:var(--bk)}
 /* ============ 16 SUCCESS / ACCOUNT ============ */
 .success{min-height:60svh;display:flex;align-items:center;justify-content:center;text-align:center;padding:60px 0}
-.acc-lay{display:grid;grid-template-columns:230px 1fr;gap:clamp(24px,4vw,64px);align-items:start}
-@media(max-width:900px){.acc-lay{grid-template-columns:1fr}}
+.acc-lay{display:grid;grid-template-columns:230px minmax(0,1fr);gap:clamp(24px,4vw,64px);align-items:start}
+@media(max-width:900px){.acc-lay{grid-template-columns:minmax(0,1fr)}}
 .acc-side{position:sticky;top:calc(var(--hdr) + 20px)}
 @media(max-width:900px){.acc-side{position:static;display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
 .acc-side a{white-space:nowrap}}
@@ -505,8 +505,8 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .stat{border:1px solid var(--gy);padding:20px}
 .stat b{display:block;font-size:26px;font-weight:900}
 .stat span{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#888;font-weight:700}
-.o-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid var(--gy)}
-@media(max-width:640px){.o-row{grid-template-columns:1fr auto;grid-auto-rows:auto}}
+.o-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid var(--gy)}
+@media(max-width:640px){.o-row{grid-template-columns:minmax(0,1fr) auto;grid-auto-rows:auto}}
 .o-row .oid{font-weight:900;letter-spacing:.06em}
 .stchip{font-size:10px;font-weight:800;letter-spacing:.14em;padding:5px 10px;text-transform:uppercase}
 .st-ship{background:var(--bk);color:var(--wt)}
@@ -521,11 +521,11 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .mani-sec{min-height:88svh;display:flex;align-items:center}
 .mani-sec .big{font-weight:900;text-transform:uppercase;letter-spacing:-.03em;line-height:.95;font-size:clamp(2.6rem,9vw,8.5rem)}
 .mani-sec .big em{font-style:normal;color:var(--ru)}
-.vals{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--dk)}
+.vals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--dk)}
 .vals div{padding:clamp(20px,3vw,40px);border:1px solid var(--dk);margin:-1px 0 0 -1px}
 .vals b{font-size:13px;letter-spacing:.14em;text-transform:uppercase;display:block}
 .vals span{font-size:12px;color:#999}
-@media(max-width:760px){.vals{grid-template-columns:1fr}}
+@media(max-width:760px){.vals{grid-template-columns:minmax(0,1fr)}}
 .lookdet-hero{aspect-ratio:16/9;max-height:72svh}
 .jfeat .plate{aspect-ratio:16/8}
 .err{min-height:70svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0}
