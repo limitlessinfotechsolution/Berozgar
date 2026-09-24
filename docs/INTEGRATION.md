@@ -289,9 +289,9 @@ The two vocabularies disagree. Ours is 3 states; the ERP's is 12.
 | **OUT FOR DELIVERY** | **not an `OrderStatus`** — only `ShipmentStatus.OUT_FOR_DELIVERY` |
 | DELIVERED | `Order.status = DELIVERED` |
 
-**Consequence:** the tracking timeline must be composed from **two sources** — `Order.status` for
-fulfilment and `ShipmentEvent` for courier legs. `src/components/track-order-client.tsx` and
-`src/lib/account.ts` (`ORDER_TIMELINE`, `STATUS_STEP`) assume a single source today.
+**Consequence:** the tracking timeline is composed from **two sources** — `Order.status` for
+fulfilment and `ShipmentEvent` for courier legs (`src/lib/tracking.ts`, rendered by
+`src/components/order-view.tsx` on both /track-order and /account/orders/:id).
 
 ERP states with no storefront equivalent, each needing a decision on what the customer is shown:
 
@@ -302,8 +302,7 @@ ERP states with no storefront equivalent, each needing a decision on what the cu
 | `CANCELLED` | ✅ | Cancelled — **no storefront state today** |
 | `RETURNED` | ✅ | Returned — **no storefront state today** |
 
-`OrderStatus` in `src/lib/account.ts` must gain `CANCELLED` and `RETURNED`; a customer can reach both
-and the UI currently cannot represent either.
+Both are handled: `order-view.tsx` shows a cancelled / returned notice instead of the timeline.
 
 ---
 
@@ -332,7 +331,9 @@ counterpart of the failure state now implemented in `src/app/checkout/page.tsx`.
 |---|---|
 | `src/lib/products.ts` | ✅ done — types only; data via `src/lib/catalogue.ts` + `<CatalogueProvider>` |
 | `src/lib/data.ts` (articles, looks) | stays local — §3 |
-| `src/lib/account.ts` (orders, addresses, timeline) | `/account/orders`, `/account/addresses`, + `ShipmentEvent` — still fixtures (needs customer login) |
+| `src/lib/account.ts` (addresses) | `/account/addresses` — still fixtures (needs customer login) |
+| `/account/orders`, `/account/orders/:id` | ✅ real ERP orders — the list is orders placed or tracked on this device (`RECENT_ORDERS_KEY`), each opened with its phone via `/api/track`; becomes `/account/orders` on the ERP once customer login exists |
+| Order actions (`src/components/order-actions.tsx`) | ✅ done — DOWNLOAD INVOICE → `/api/orders/:id/invoice` (ERP `GET /orders/:n/invoice`); REQUEST RETURN / REQUEST EXCHANGE → `return-request-modal.tsx` → `/api/orders/:id/returns` (ERP `POST /orders/:n/returns`, multipart with photos); withdraw → `/api/orders/:id/returns/:rn/cancel`. Contract: ERP `docs/INTEGRATION.md` §6a–6b |
 | `src/lib/search.ts` | ✅ done — searches the ERP catalogue client-side (5 products; move to `?search=` when it grows) |
 | `src/components/session-provider.tsx` | `/auth/*` — `login()` / `register()` are the only functions that change |
 | `src/app/api/checkout/route.ts` | ✅ done — proxies `POST /checkout`; `/api/checkout/quote` added |
