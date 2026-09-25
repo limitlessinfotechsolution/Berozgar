@@ -5,6 +5,7 @@ import { useCart } from "@/components/cart-provider";
 import { ProductPlate } from "@/components/product-plate";
 import { RevealObserver } from "@/components/reveal-observer";
 import { showToast } from "@/lib/ui-events";
+import { RecentlyViewed } from "@/components/recently-viewed";
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 const FREE_SHIPPING_AT = 999;
@@ -23,6 +24,7 @@ export default function CartPage() {
             <Link href="/shop" className="btn">START SHOPPING</Link>
           </div>
         </div>
+        <RecentlyViewed />
       </div>
     );
   }

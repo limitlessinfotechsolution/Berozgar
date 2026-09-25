@@ -7,6 +7,7 @@ import { useCart } from "@/components/cart-provider";
 import { useCatalogue } from "@/components/catalogue-provider";
 import { ProductPlate } from "@/components/product-plate";
 import { QUICK_ADD, TOAST, showToast } from "@/lib/ui-events";
+import { Swatch } from "@/components/swatch";
 
 export function QuickSheet() {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -75,7 +76,7 @@ export function QuickSheet() {
                     <div className="clrow">
                       {product.colors.map((c) => (
                         <button key={c} className={`cl ${activeColor === c ? "on" : ""}`.trim()} onClick={() => setColor(c)} aria-label={c}>
-                          {c.slice(0, 2)}
+                          <Swatch name={c} />
                         </button>
                       ))}
                     </div>

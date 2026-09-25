@@ -7,9 +7,10 @@ import { useCart } from "@/components/cart-provider";
 import { useSession } from "@/components/session-provider";
 import { RevealObserver } from "@/components/reveal-observer";
 import { showToast } from "@/lib/ui-events";
-import { writeStored } from "@/lib/use-hydrated";
+import { readStored, useHydrated, writeStored } from "@/lib/use-hydrated";
 import { LAST_ORDER_KEY, rememberOrder } from "@/lib/tracking";
 import { payWithRazorpay, type RazorpayOrder } from "@/lib/razorpay";
+import { deliveryRange, PINCODE_KEY, type PincodeInfo } from "@/lib/delivery";
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 /* ERP money is a decimal string; format it without summing floats. */
@@ -34,15 +35,27 @@ type Delivery = {
   city: string;
   state: string;
   pincode: string;
+  landmark: string;
 };
 
 /* An order the ERP has created and that is waiting for its online payment. */
 type PendingPayment = { orderId: string; grandTotal: string; razorpay: RazorpayOrder };
 
 type Quote = {
-  totals: { productCost: string; shipping: string; subtotal: string; gst: string; grandTotal: string } | null;
+  totals: {
+    productCost: string;
+    shipping: string;
+    subtotal: string;
+    gst: string;
+    grandTotal: string;
+    /* Prepaid discount and COD fee for the chosen method (Settings → Storefront). */
+    discount: string;
+    codFee: string;
+  } | null;
   lines: { variantId: string; reason: string; available?: number }[];
   gstRate: string;
+  cod: { available: boolean; reason: string | null; fee: string };
+  prepaidDiscountPct: number;
 };
 
 export default function CheckoutPage() {
@@ -55,6 +68,11 @@ export default function CheckoutPage() {
   const [emailEdit, setEmailEdit] = useState<string | null>(null);
   const email = emailEdit ?? user?.email ?? "";
   const [deliveryEdits, setDeliveryEdits] = useState<Partial<Delivery>>({});
+  const hydrated = useHydrated();
+  /* A pincode already checked on a product page. */
+  const savedPincode = hydrated ? readStored<string>(PINCODE_KEY, "") : "";
+  /* City, state, delivery window and COD rule for the entered pincode, from the ERP. */
+  const [pinInfo, setPinInfo] = useState<PincodeInfo | null>(null);
   const [express, setExpress] = useState(false);
   const [payment, setPayment] = useState("upi");
   const [placing, setPlacing] = useState(false);
@@ -78,7 +96,8 @@ export default function CheckoutPage() {
     line2: "",
     city: "",
     state: "",
-    pincode: "",
+    pincode: savedPincode,
+    landmark: "",
     ...deliveryEdits,
   };
   const field = (key: keyof Delivery) => ({
@@ -87,11 +106,13 @@ export default function CheckoutPage() {
   });
 
   const lineItems = items.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
-  const quoteKey = JSON.stringify({ items: lineItems, express });
+  const validPin = /^[1-9][0-9]{5}$/.test(delivery.pincode) ? delivery.pincode : undefined;
+  const quoteKey = JSON.stringify({ items: lineItems, express, payment, pincode: validPin });
 
-  /* The ERP's price for the bag, fetched for the review step. */
+  /* The ERP's price for the bag — from the payment step on, because COD rules,
+     the COD fee and the prepaid discount all depend on it. */
   useEffect(() => {
-    if (step !== 4 || JSON.parse(quoteKey).items.length === 0) return;
+    if (step < 3 || JSON.parse(quoteKey).items.length === 0) return;
     let cancelled = false;
     fetch("/api/checkout/quote", {
       method: "POST",
@@ -106,6 +127,24 @@ export default function CheckoutPage() {
       .catch(() => { if (!cancelled) setQuoteResult({ key: quoteKey, value: "error" }); });
     return () => { cancelled = true; };
   }, [step, quoteKey]);
+
+  useEffect(() => {
+    if (!validPin) return;
+    let live = true;
+    fetch(`/api/pincode/${validPin}`)
+      .then((res) => (res.ok ? (res.json() as Promise<PincodeInfo>) : null))
+      .then((info) => {
+        if (!live || !info) return;
+        setPinInfo(info);
+        setDeliveryEdits((d) => ({
+          ...d,
+          ...(d.city === undefined && info.city ? { city: info.city } : {}),
+          ...(d.state === undefined && info.state ? { state: info.state } : {}),
+        }));
+      })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, [validPin]);
 
   /* Policy versions recorded against the order. Must stay above the empty-bag
      return below: the bag hydrates empty, so an effect after it would change
@@ -125,7 +164,11 @@ export default function CheckoutPage() {
 
   /* A quote for a different bag (or none yet) means one is on its way. */
   const quote: Quote | "loading" | "error" | null =
-    step !== 4 ? null : quoteResult?.key === quoteKey ? quoteResult.value : "loading";
+    step < 3 ? null : quoteResult?.key === quoteKey ? quoteResult.value : "loading";
+  const codRule = typeof quote === "object" && quote !== null ? quote.cod : null;
+  const codBlocked = codRule !== null && !codRule.available;
+  const prepaidPct = typeof quote === "object" && quote !== null ? quote.prepaidDiscountPct : 0;
+  const pinWindow = pinInfo && pinInfo.pincode === validPin ? pinInfo.deliveryDays : null;
 
   /*
    * The order exists and its stock is held; only the money is outstanding. The
@@ -248,6 +291,7 @@ export default function CheckoutPage() {
           address: {
             line1: delivery.line1,
             line2: delivery.line2 || null,
+            landmark: delivery.landmark || null,
             city: delivery.city,
             state: delivery.state,
             pincode: delivery.pincode,
@@ -364,8 +408,30 @@ export default function CheckoutPage() {
                   <input className="inp" id="co-line1" required autoComplete="address-line1" {...field("line1")} />
                 </div>
                 <div className="fgrp">
-                  <label className="fl" htmlFor="co-line2">APARTMENT, LANDMARK (OPTIONAL)</label>
+                  <label className="fl" htmlFor="co-line2">FLAT, FLOOR, BUILDING (OPTIONAL)</label>
                   <input className="inp" id="co-line2" autoComplete="address-line2" {...field("line2")} />
+                </div>
+                <div className="fgrp">
+                  <label className="fl" htmlFor="co-landmark">LANDMARK (OPTIONAL)</label>
+                  <input className="inp" id="co-landmark" placeholder="Near…" {...field("landmark")} />
+                </div>
+                <div className="fgrp">
+                  <label className="fl" htmlFor="co-pin">PINCODE</label>
+                  <input
+                    className="inp"
+                    id="co-pin"
+                    required
+                    inputMode="numeric"
+                    maxLength={6}
+                    pattern="[1-9][0-9]{5}"
+                    autoComplete="postal-code"
+                    {...field("pincode")}
+                  />
+                  {pinWindow && (
+                    <small className="small mut" style={{ display: "block", marginTop: "6px" }}>
+                      STANDARD DELIVERY BY {deliveryRange(pinWindow)}
+                    </small>
+                  )}
                 </div>
                 <div className="frow">
                   <div className="fgrp">
@@ -377,16 +443,14 @@ export default function CheckoutPage() {
                     <input className="inp" id="co-state" required autoComplete="address-level1" {...field("state")} />
                   </div>
                 </div>
-                <div className="fgrp">
-                  <label className="fl" htmlFor="co-pin">PIN</label>
-                  <input className="inp" id="co-pin" required inputMode="numeric" pattern="[1-8][0-9]{5}" autoComplete="postal-code" {...field("pincode")} />
-                </div>
 
                 <h3 className="cap" style={{ margin: "26px 0 12px" }}>SHIPPING METHOD</h3>
                 <div className={`del-opt ${!express ? "on" : ""}`.trim()} role="button" tabIndex={0} onClick={() => setExpress(false)}>
                   <div>
                     <b className="small" style={{ letterSpacing: "0.1em" }}>STANDARD</b>
-                    <small className="small mut" style={{ display: "block" }}>3–5 WORKING DAYS</small>
+                    <small className="small mut" style={{ display: "block" }}>
+                      {pinWindow ? `BY ${deliveryRange(pinWindow)}` : "3–5 WORKING DAYS"}
+                    </small>
                   </div>
                   <b className="price">{subtotal >= 999 ? "FREE" : inr(99)}</b>
                 </div>
@@ -409,18 +473,32 @@ export default function CheckoutPage() {
           {step === 3 && (
             <>
               <h2 className="h2">PAYMENT</h2>
-              {PAYMENTS.map(([value, label, hint]) => (
-                <div
-                  key={value}
-                  className={`pay-opt ${payment === value ? "on" : ""}`.trim()}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setPayment(value)}
-                >
-                  <b>{label}</b>
-                  <small>{hint}</small>
-                </div>
-              ))}
+              {prepaidPct > 0 && (
+                <p className="cap" style={{ marginBottom: "12px" }}>PAY ONLINE &amp; SAVE {prepaidPct}% ON YOUR ORDER</p>
+              )}
+              {PAYMENTS.map(([value, label, hint]) => {
+                const off = value === "cod" && codBlocked;
+                return (
+                  <div
+                    key={value}
+                    className={`pay-opt ${payment === value ? "on" : ""}`.trim()}
+                    role="button"
+                    tabIndex={off ? -1 : 0}
+                    aria-disabled={off}
+                    style={off ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
+                    onClick={() => { if (!off) setPayment(value); }}
+                  >
+                    <b>{label}</b>
+                    <small>
+                      {off
+                        ? codRule?.reason
+                        : value === "cod" && codRule && Number(codRule.fee) > 0
+                          ? `${hint} · ${inrDecimal(codRule.fee)} COD fee`
+                          : hint}
+                    </small>
+                  </div>
+                );
+              })}
               {payment !== "cod" && (
                 <p className="small mut" style={{ marginTop: "14px" }}>
                   You&apos;ll pay securely through Razorpay after reviewing your order. Nothing is charged at
@@ -428,7 +506,13 @@ export default function CheckoutPage() {
                 </p>
               )}
               <div style={{ display: "grid", gap: "10px", marginTop: "22px" }}>
-                <button className="btn btn-full" onClick={() => setStep(4)}>CONTINUE TO REVIEW →</button>
+                <button
+                  className="btn btn-full"
+                  disabled={payment === "cod" && codBlocked}
+                  onClick={() => setStep(4)}
+                >
+                  {payment === "cod" && codBlocked ? "CHOOSE ANOTHER PAYMENT METHOD" : "CONTINUE TO REVIEW →"}
+                </button>
                 <button className="btn btn-o btn-full" onClick={() => setStep(2)}>← BACK</button>
               </div>
             </>
@@ -553,6 +637,18 @@ export default function CheckoutPage() {
                 <span>Shipping</span>
                 <span className="num">{Number(priced.totals!.shipping) ? inrDecimal(priced.totals!.shipping) : "FREE"}</span>
               </div>
+              {Number(priced.totals!.discount) > 0 && (
+                <div className="sumrow">
+                  <span>Prepaid discount</span>
+                  <span className="num">−{inrDecimal(priced.totals!.discount)}</span>
+                </div>
+              )}
+              {Number(priced.totals!.codFee) > 0 && (
+                <div className="sumrow">
+                  <span>COD fee</span>
+                  <span className="num">{inrDecimal(priced.totals!.codFee)}</span>
+                </div>
+              )}
               <div className="sumrow">
                 <span>GST ({Number(priced.gstRate)}%)</span>
                 <span className="num">{inrDecimal(priced.totals!.gst)}</span>

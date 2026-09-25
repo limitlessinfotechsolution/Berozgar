@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useCatalogue } from "@/components/catalogue-provider";
+import { useSession } from "@/components/session-provider";
+import { accountApi } from "@/lib/account-client";
 import type { Product, Variant } from "@/lib/products";
 import { useHydrated, readStored, writeStored } from "@/lib/use-hydrated";
 
@@ -10,6 +12,10 @@ import { useHydrated, readStored, writeStored } from "@/lib/use-hydrated";
  * snapshot for rendering while the catalogue is unavailable; whenever the live
  * catalogue is present each line is re-resolved against it, so a price change in
  * the admin shows up in an existing bag and a delisted variant drops out.
+ *
+ * Signed in, the bag and wishlist also live in the ERP account (docs/INTEGRATION.md
+ * §Accounts): on sign-in the device's bag is merged with the saved one, later changes
+ * are saved back, and signing out empties this device.
  */
 export type CartItem = {
   variantId: string;
@@ -55,6 +61,74 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { writeStored(CART_KEY, items); }, [items]);
   useEffect(() => { writeStored(WISHLIST_KEY, wishlist); }, [wishlist]);
 
+  const { user, loading: sessionLoading } = useSession();
+  const accountId = user?.id ?? null;
+  /* The account this device's bag has been merged with; null while signed out. */
+  const [syncedWith, setSyncedWith] = useState<string | null>(null);
+  const previousAccount = useRef<string | null>(null);
+
+  /* Sign-in: merge both ways once (after the catalogue has loaded, so saved lines can be
+     resolved to products). Sign-out: forget this device's copy. */
+  useEffect(() => {
+    if (!hydrated || sessionLoading) return;
+    const previous = previousAccount.current;
+    if (!accountId) {
+      previousAccount.current = null;
+      if (previous) {
+        setItems([]);
+        setWishlist([]);
+        setSyncedWith(null);
+      }
+      return;
+    }
+    if (previous === accountId || products.length === 0) return;
+    previousAccount.current = accountId;
+    // Results are applied only if the same shopper is still signed in when they arrive.
+    const current = () => previousAccount.current === accountId;
+    void (async () => {
+      const cart = await accountApi<{ items: { variantId: string; quantity: number }[] }>("/api/account/cart", {
+        method: "PUT",
+        body: { items: items.map(({ variantId, quantity }) => ({ variantId, quantity })), merge: true },
+      });
+      const saved = await accountApi<{ data: { productId: string }[] }>("/api/account/wishlist");
+      if (!current()) return;
+      if (cart.ok) {
+        setItems(
+          cart.data.items.flatMap((line) => {
+            for (const product of products) {
+              const variant = product.variants.find((v) => v.id === line.variantId);
+              if (variant) {
+                return [{ variantId: variant.id, size: variant.size, colour: variant.colour, quantity: line.quantity, product }];
+              }
+            }
+            return [];
+          }),
+        );
+      }
+      if (saved.ok) {
+        const remote = saved.data.data.map((w) => w.productId);
+        const missing = wishlist.filter((id) => !remote.includes(id));
+        await Promise.all(missing.map((productId) => accountApi("/api/account/wishlist", { method: "POST", body: { productId } })));
+        if (current()) setWishlist([...new Set([...remote, ...missing])]);
+      }
+      if (current()) setSyncedWith(accountId);
+    })();
+    // Runs on sign-in/out only; the bag and wishlist are read as they are at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, hydrated, sessionLoading, products.length]);
+
+  /* After the merge, every bag change is saved to the account (debounced). */
+  useEffect(() => {
+    if (!accountId || syncedWith !== accountId) return;
+    const timer = window.setTimeout(() => {
+      void accountApi("/api/account/cart", {
+        method: "PUT",
+        body: { items: items.map(({ variantId, quantity }) => ({ variantId, quantity })), merge: false },
+      });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [items, accountId, syncedWith]);
+
   /* Stored state only exists in the browser, so expose the empty server value
      until hydration completes. Mutations still target the real state. */
   const live = products.length > 0;
@@ -73,6 +147,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   function toggleWishlist(id: string) {
     const added = !wishlist.includes(id);
     setWishlist((current) => (added ? [...current, id] : current.filter((x) => x !== id)));
+    if (accountId && syncedWith === accountId) {
+      void (added
+        ? accountApi("/api/account/wishlist", { method: "POST", body: { productId: id } })
+        : accountApi(`/api/account/wishlist/${encodeURIComponent(id)}`, { method: "DELETE" }));
+    }
     return added;
   }
 

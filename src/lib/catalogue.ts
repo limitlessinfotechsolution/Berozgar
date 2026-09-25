@@ -172,6 +172,23 @@ export async function getCatalogueOrThrow(): Promise<Product[]> {
   }
 }
 
+export type UpcomingDrop = { collection: string; launchAt: string; headline: string };
+
+/*
+ * Drops scheduled in the ERP (Settings → Storefront) that haven't launched. Their
+ * products are withheld by the ERP until launch; this is only the schedule, for
+ * the countdown page. An unreachable ERP means no countdown, never an error.
+ */
+export async function getUpcomingDrops(): Promise<UpcomingDrop[]> {
+  try {
+    const res = await fetch(erpUrl("/drops"), { next: { tags: [CATALOGUE_TAG], revalidate: REVALIDATE_SECONDS } });
+    if (!res.ok) return [];
+    return ((await res.json()) as { data?: UpcomingDrop[] }).data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getCatalogueProduct(slug: string): Promise<Product | null> {
   try {
     const res = await fetch(erpUrl(`/products/${encodeURIComponent(slug)}`), {

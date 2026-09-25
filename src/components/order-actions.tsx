@@ -38,7 +38,7 @@ export function OrderActions({
     if (!order.invoice) return;
     setDownloading(true);
     try {
-      const res = await fetch(`/api/orders/${encodeURIComponent(order.orderNumber)}/invoice?phone=${encodeURIComponent(phone)}`);
+      const res = await fetch(`/api/orders/${encodeURIComponent(order.orderNumber)}/invoice${phone ? `?phone=${encodeURIComponent(phone)}` : ""}`);
       if (!res.ok) {
         showToast(res.status === 404 ? "INVOICE NOT FOUND" : "INVOICE UNAVAILABLE — TRY AGAIN");
         return;
@@ -63,7 +63,7 @@ export function OrderActions({
     try {
       const res = await fetch(
         `/api/orders/${encodeURIComponent(order.orderNumber)}/returns/${encodeURIComponent(returnNumber)}/cancel`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ phone }) },
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(phone ? { phone } : {}) },
       );
       if (res.ok) {
         showToast(`CLAIM WITHDRAWN — ${returnNumber}`);

@@ -276,7 +276,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 #bnav ul{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 /* Search is a <button>, not a link — it opens the overlay. It has to be styled
    alongside the anchors or it renders with no layout and an unsized icon. */
-#bnav a,#bnav button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:10px 0 8px;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#888}
+#bnav a,#bnav button{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;padding:10px 0 8px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#666}
 #bnav a svg,#bnav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7}
 #bnav a.on,#bnav button.on{color:var(--bk)}
 @media(max-width:900px){
@@ -379,7 +379,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 /* Inset to the page gutter so it lines up with the copy below, not the screen edge. */
 .pg-mobwrap .badge{top:12px;left:var(--pad)}
 .pg-dots{display:flex;justify-content:center;gap:2px;padding:12px 0 0}
-.pg-dots button{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.pg-dots button{width:32px;height:44px;display:flex;align-items:center;justify-content:center}
 .pg-dots i{display:block;width:6px;height:6px;border-radius:50%;background:#ccc;transition:background var(--tf),transform var(--tf)}
 .pg-dots button.on i{background:var(--bk);transform:scale(1.35)}
 .pg-stock{margin-top:10px}
@@ -396,6 +396,10 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .clrow{display:flex;gap:10px}
 .cl{width:44px;height:44px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;transition:all var(--tf)}
 .cl.on{border:2px solid var(--bk)}
+.cl .sw{display:block;width:26px;height:26px;border-radius:50%}
+.cl .sw-light{box-shadow:inset 0 0 0 1px #bbb}
+.pcard-info .cl-dots{display:flex;gap:5px;margin-top:2px}
+.pcard-info .cl-dots i{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
 .qty{display:inline-flex;align-items:center;border:1px solid var(--bk)}
 .qty button{width:46px;height:50px;font-size:18px;font-weight:700}
 .qty b{width:44px;text-align:center;font-size:15px}
@@ -544,6 +548,9 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
   .sortsel select{min-height:44px}
   .acc-side a{padding:14px 0}
   .addr-act button{min-height:44px;display:inline-flex;align-items:center}
+  /* Text links keep their look; an invisible layer grows what a thumb can hit. */
+  .tlink,.crumb a{position:relative}
+  .tlink::before,.crumb a::before{content:'';position:absolute;inset:-12px -6px}
 }
 /* ============ 18 REVEAL / MOTION ============ */
 [data-rev]{opacity:0;transform:translateY(26px);transition:opacity .7s var(--e),transform .7s var(--e)}

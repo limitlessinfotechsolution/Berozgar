@@ -5,8 +5,8 @@ import { useEffect } from "react";
 import { useSession } from "@/components/session-provider";
 
 /*
- * Client-side gate. The session lives in localStorage, so this cannot run on the
- * server — it waits for `loading` to clear before redirecting, otherwise a
+ * Client-side gate. The session check is a fetch to /api/auth/session, so this
+ * waits for `loading` to clear before redirecting, otherwise a
  * signed-in visitor would be bounced to /login on the first paint.
  */
 export function RequireSession({ children }: { children: React.ReactNode }) {

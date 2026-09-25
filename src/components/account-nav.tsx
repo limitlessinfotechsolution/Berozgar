@@ -23,9 +23,9 @@ export function AccountNav() {
       <Link
         href="/"
         className="lg"
-        onClick={(e) => {
+        onClick={async (e) => {
           e.preventDefault();
-          logout();
+          await logout();
           showToast("LOGGED OUT");
           router.push("/");
         }}

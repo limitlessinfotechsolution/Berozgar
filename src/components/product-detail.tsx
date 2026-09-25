@@ -11,6 +11,10 @@ import { PhotoPlate, Plate } from "@/components/product-plate";
 import { RevealObserver } from "@/components/reveal-observer";
 import { showToast } from "@/lib/ui-events";
 import { SizeFinder, SizeChartTable, HowToMeasure } from "@/components/size-finder";
+import { Swatch } from "@/components/swatch";
+import { requestStockAlert } from "@/lib/audience";
+import { PincodeCheck } from "@/components/pincode-check";
+import { RecentlyViewed } from "@/components/recently-viewed";
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -111,7 +115,17 @@ export function ProductDetail({ product }: { product: Product }) {
       </ul>
     )],
     ["SHIPPING", <p key="s">Dispatched in 24h. Standard delivery 3–5 working days. FREE above ₹999. Express available at checkout.</p>],
-    ["RETURNS", <p key="r">14-day returns and free size exchanges. Items must be unworn with tags attached.</p>],
+    /* Matches the Return, Replacement & Refund Policy: printed items are made to
+       order, so claims cover damaged, defective or wrong items — not a change of
+       mind or a size the customer chose. The window is an ERP setting, so it is
+       linked rather than restated here. */
+    ["RETURNS", (
+      <p key="r">
+        Damaged, defective or wrong item? Claim a free remake or a refund from your order page, shortly after
+        delivery. Size changes aren&apos;t covered — check the size guide first.{" "}
+        <Link href="/legal/refund" className="tlink">RETURN POLICY</Link>
+      </p>
+    )],
   ];
 
   const slide = (i: number) =>
@@ -220,7 +234,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 <div className="clrow">
                   {product.colors.map((c) => (
                     <button key={c} className={`cl ${color === c ? "on" : ""}`.trim()} onClick={() => pickColor(c)} aria-label={c}>
-                      {c.slice(0, 2)}
+                      <Swatch name={c} />
                     </button>
                   ))}
                   <span className="cap" style={{ alignSelf: "center", marginLeft: "8px" }}>{color}</span>
@@ -268,9 +282,21 @@ export function ProductDetail({ product }: { product: Product }) {
               {product.soldout ? (
                 <form
                   className="coupon"
-                  onSubmit={(e) => { e.preventDefault(); showToast("WE'LL NOTIFY YOU WHEN IT'S BACK"); e.currentTarget.reset(); }}
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const email = String(new FormData(form).get("email") ?? "").trim();
+                    // Only promise an email once the ERP has stored the request.
+                    const result = await requestStockAlert(email, product.id);
+                    if (result.ok) {
+                      showToast("WE'LL EMAIL YOU WHEN IT'S BACK");
+                      form.reset();
+                    } else {
+                      showToast(result.message);
+                    }
+                  }}
                 >
-                  <input type="email" required placeholder="EMAIL FOR RESTOCK ALERT" />
+                  <input type="email" name="email" required autoComplete="email" placeholder="EMAIL FOR RESTOCK ALERT" aria-label="Email for restock alert" />
                   <button type="submit">NOTIFY ME</button>
                 </form>
               ) : (
@@ -281,7 +307,9 @@ export function ProductDetail({ product }: { product: Product }) {
               )}
             </div>
 
-            <p className="pdp-note">Dispatch in 24h · Free shipping above ₹999 · 14-day returns</p>
+            <p className="pdp-note">Dispatch in 24h · Free shipping above ₹999 · Free remake if it arrives damaged or wrong</p>
+
+            <PincodeCheck />
 
             <div style={{ marginTop: "44px" }}>
               {accordions.map(([title, body], i) => (
@@ -316,6 +344,8 @@ export function ProductDetail({ product }: { product: Product }) {
             </div>
           </section>
         )}
+
+        <RecentlyViewed record={product.id} exclude={product.id} />
       </div>
 
       {sizeGuide && (

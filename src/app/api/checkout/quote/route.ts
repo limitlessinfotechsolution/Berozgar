@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { erpUrl } from "@/lib/catalogue";
+import { erpHeaders } from "@/lib/erp-session";
 
 /*
  * The ERP's price for the bag — subtotal, shipping, GST, total — so the review
@@ -17,10 +18,7 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(erpUrl("/checkout/quote"), {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": request.headers.get("x-forwarded-for") ?? "",
-      },
+      headers: { "content-type": "application/json", ...erpHeaders(request) },
       body: JSON.stringify(payload),
       cache: "no-store",
     });

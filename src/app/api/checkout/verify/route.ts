@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { erpUrl } from "@/lib/catalogue";
+import { erpHeaders } from "@/lib/erp-session";
 
 /*
  * Razorpay's success callback → ERP POST /api/public/v1/checkout/verify. The ERP
@@ -18,10 +19,7 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(erpUrl("/checkout/verify"), {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": request.headers.get("x-forwarded-for") ?? "",
-      },
+      headers: { "content-type": "application/json", ...erpHeaders(request) },
       body: JSON.stringify(payload),
       cache: "no-store",
     });

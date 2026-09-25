@@ -3,22 +3,31 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AuthCard } from "@/components/auth-card";
-import { showToast } from "@/lib/ui-events";
+import { FormError } from "@/components/form-error";
+import { accountApi } from "@/lib/account-client";
 
+/*
+ * Asks the ERP to email a reset link. The answer is the same whether or not the email
+ * has an account, so this page can't be used to find out who shops here. Shoppers
+ * without an email on file sign in with a one-time code instead.
+ */
 export default function ForgotPasswordPage() {
-  const [stage, setStage] = useState<"request" | "verify" | "done">("request");
-  const [contact, setContact] = useState("");
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function requestCode(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStage("verify");
-    showToast("CODE SENT (DEMO)");
-  }
-
-  function verifyCode(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setStage("done");
-    showToast("PASSWORD UPDATED");
+    setBusy(true);
+    setError(null);
+    const result = await accountApi("/api/auth/password/forgot", { method: "POST", body: { email: email.trim() } });
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setSent(true);
   }
 
   return (
@@ -31,52 +40,36 @@ export default function ForgotPasswordPage() {
         </p>
       }
     >
-      {stage === "request" && (
-        <form onSubmit={requestCode}>
+      {sent ? (
+        <div className="empty" style={{ padding: "20px 0" }}>
+          <h2 className="h3">CHECK YOUR INBOX.</h2>
+          <p className="small mut">
+            If <b>{email}</b> has an account, a reset link is on its way. It works once and expires in 30 minutes.
+          </p>
+          <Link href="/login" className="btn" style={{ marginTop: "20px" }}>BACK TO LOG IN</Link>
+        </div>
+      ) : (
+        <form onSubmit={submit}>
+          <FormError message={error} />
           <div className="fgrp">
-            <label className="fl" htmlFor="fp-contact">EMAIL OR MOBILE</label>
+            <label className="fl" htmlFor="fp-email">EMAIL</label>
             <input
               className="inp"
-              id="fp-contact"
+              id="fp-email"
+              type="email"
+              autoComplete="email"
               required
               placeholder="you@example.com"
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <p className="small mut" style={{ margin: "0 0 22px" }}>
-            We&apos;ll send a one-time code to confirm it&apos;s you.
+            We&apos;ll email you a link to choose a new password. No email on your account? Use{" "}
+            <Link href="/login" className="tlink" style={{ border: 0 }}>ONE-TIME CODE</Link> on the log-in page.
           </p>
-          <button className="btn btn-full" type="submit">SEND CODE</button>
+          <button className="btn btn-full" type="submit" disabled={busy}>{busy ? "SENDING…" : "SEND RESET LINK"}</button>
         </form>
-      )}
-
-      {stage === "verify" && (
-        <form onSubmit={verifyCode}>
-          <p className="small mut" style={{ marginBottom: "18px" }}>
-            Enter the 6-digit code sent to <b>{contact}</b>.
-          </p>
-          <div className="fgrp">
-            <label className="fl" htmlFor="fp-otp">ONE-TIME CODE</label>
-            <input className="inp num" id="fp-otp" required inputMode="numeric" pattern="[0-9]{6}" placeholder="______" />
-          </div>
-          <div className="fgrp">
-            <label className="fl" htmlFor="fp-new">NEW PASSWORD</label>
-            <input className="inp" id="fp-new" type="password" required minLength={8} />
-          </div>
-          <div style={{ display: "grid", gap: "10px", marginTop: "22px" }}>
-            <button className="btn btn-full" type="submit">UPDATE PASSWORD</button>
-            <button type="button" className="btn btn-o btn-full" onClick={() => setStage("request")}>← BACK</button>
-          </div>
-        </form>
-      )}
-
-      {stage === "done" && (
-        <div className="empty" style={{ padding: "20px 0" }}>
-          <h2 className="h3">PASSWORD UPDATED.</h2>
-          <p className="small mut">You can sign in with your new password.</p>
-          <Link href="/login" className="btn" style={{ marginTop: "20px" }}>LOG IN</Link>
-        </div>
       )}
     </AuthCard>
   );

@@ -17,14 +17,16 @@ export type Lookup =
   | { state: "missing" }
   | { state: "error" };
 
+/* An empty phone means "as the signed-in shopper" — the proxy sends the session instead. */
 export async function fetchOrder(id: string, phone: string): Promise<Lookup> {
   try {
-    const res = await fetch(`/api/track?id=${encodeURIComponent(id)}&phone=${encodeURIComponent(phone)}`, { cache: "no-store" });
+    const query = `id=${encodeURIComponent(id)}${phone ? `&phone=${encodeURIComponent(phone)}` : ""}`;
+    const res = await fetch(`/api/track?${query}`, { cache: "no-store" });
     if (res.status === 404) return { state: "missing" };
     if (!res.ok) return { state: "error" };
     const order = (await res.json()) as TrackedOrder;
     // Proven by number + phone: remember it for /account/orders on this device.
-    rememberOrder(order.orderNumber, phone);
+    if (phone) rememberOrder(order.orderNumber, phone);
     return { state: "found", order };
   } catch {
     return { state: "error" };

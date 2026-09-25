@@ -6,6 +6,7 @@ import { useCart } from "@/components/cart-provider";
 import { ProductPlate } from "@/components/product-plate";
 import { openQuickAdd, showToast } from "@/lib/ui-events";
 import { discountPercent } from "@/lib/shop-filters";
+import { swatchFor } from "@/lib/colours";
 
 export function ProductCard({ product }: { product: Product }) {
   const { toggleWishlist, inWishlist } = useCart();
@@ -71,7 +72,14 @@ export function ProductCard({ product }: { product: Product }) {
         ) : (
           <span className="price">₹{product.price.toLocaleString("en-IN")}</span>
         )}
-        <span className="cl">{product.colors.join(" · ")}</span>
+        {/* Dots when every colour is one we can draw; names otherwise, never a guess. */}
+        {product.colors.every((c) => swatchFor(c)) ? (
+          <span className="cl-dots" aria-label={product.colors.join(", ")}>
+            {product.colors.map((c) => <i key={c} title={c} style={{ background: swatchFor(c)! }} />)}
+          </span>
+        ) : (
+          <span className="cl">{product.colors.join(" · ")}</span>
+        )}
       </div>
     </article>
   );

@@ -8,6 +8,7 @@ import { RevealObserver } from "@/components/reveal-observer";
 import { useCatalogue } from "@/components/catalogue-provider";
 import { openQuickAdd } from "@/lib/ui-events";
 import { articles, looks } from "@/lib/data";
+import { NewsletterForm } from "@/components/newsletter-form";
 
 /* Where the three "shop the look" hotspots sit on the plate. */
 const HOTSPOTS = [
@@ -236,10 +237,7 @@ export default function Home() {
               <p className="eyebrow" style={{ opacity: 0.6 }}>NEWSLETTER</p>
               <h2 className="d-lg" style={{ marginTop: "14px" }}>JOIN THE<br />UNEMPLOYED.</h2>
               <p style={{ marginTop: "14px", opacity: 0.7 }}>Drops. Stories. No bullshit.</p>
-              <form className="nl-form" onSubmit={(e) => e.preventDefault()}>
-                <input type="email" required placeholder="EMAIL ADDRESS" aria-label="Email" />
-                <button type="submit">JOIN</button>
-              </form>
+              <NewsletterForm source="home" />
             </div>
           </section>
         </div>

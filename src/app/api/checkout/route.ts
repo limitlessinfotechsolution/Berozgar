@@ -1,11 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { revalidateTag } from "next/cache";
 import { erpUrl } from "@/lib/catalogue";
+import { erpHeaders, sessionToken } from "@/lib/erp-session";
 
 /*
  * Checkout → ERP order. A server-side proxy to POST /api/public/v1/checkout, so
- * the browser never talks to the ERP directly (no CORS, no ERP URL in the bundle)
- * and the client IP is forwarded for the ERP's rate limit and audit trail.
+ * the browser never talks to the ERP directly (no CORS, no ERP URL in the bundle),
+ * the client IP is forwarded for the ERP's rate limit and audit trail, and a signed-in
+ * shopper's session goes along so the order lands in their account.
  *
  * Contract with the checkout page: `{ success: true, orderId, razorpay }` on
  * success, where `razorpay` is the order to pay against (null for COD, or when
@@ -15,8 +17,10 @@ import { erpUrl } from "@/lib/catalogue";
 
 type LineProblem = { variantId: string; reason: "unknown" | "unavailable" | "insufficient_stock"; available?: number };
 
-function describe(status: number, body: { message?: string; lines?: LineProblem[]; issues?: unknown }): string {
+function describe(status: number, body: { error?: string; message?: string; lines?: LineProblem[]; issues?: unknown }): string {
   if (status === 429) return "Too many attempts — wait a minute and try again.";
+  // The ERP's own wording, e.g. "Cash on delivery is available on orders up to ₹3,000."
+  if (body.error === "cod_unavailable" && body.message) return body.message;
   if (body.lines?.length) {
     return body.lines
       .map((l) =>
@@ -30,7 +34,7 @@ function describe(status: number, body: { message?: string; lines?: LineProblem[
   return "The order service didn't accept the order.";
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let payload: unknown;
   try {
     payload = await request.json();
@@ -42,10 +46,7 @@ export async function POST(request: Request) {
   try {
     response = await fetch(erpUrl("/checkout"), {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": request.headers.get("x-forwarded-for") ?? "",
-      },
+      headers: { "content-type": "application/json", ...erpHeaders(request, sessionToken(request)) },
       body: JSON.stringify(payload),
       cache: "no-store",
     });

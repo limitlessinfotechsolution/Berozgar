@@ -2,28 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useSession } from "@/components/session-provider";
 import { OrderActions } from "@/components/order-actions";
 import { OrderView } from "@/components/order-view";
 import { fetchOrder, type Lookup } from "@/components/track-order-client";
 import { useHydrated } from "@/lib/use-hydrated";
-import { recentOrders } from "@/lib/tracking";
 
 /*
- * One real order in the account area. The phone that proves it comes from the
- * orders remembered on this device, then the signed-in profile; failing both,
- * the shopper is asked for it once.
+ * One real order in the account area (the layout guarantees a signed-in shopper).
+ * The session proves the account's own orders — an empty phone means exactly that;
+ * for any other order the shopper is asked for the phone used at checkout.
  */
 export function AccountOrderClient({ orderNumber }: { orderNumber: string }) {
   const hydrated = useHydrated();
-  const { user } = useSession();
-  const remembered = hydrated ? recentOrders().find((o) => o.id === orderNumber)?.phone : undefined;
-  const knownPhone = remembered ?? user?.phone ?? "";
-
   const [phone, setPhone] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const [result, setResult] = useState<Lookup>({ state: "idle" });
-  const activePhone = phone ?? knownPhone;
+  const activePhone = phone ?? "";
 
   /* After a claim or withdrawal: reload in place, keeping the order on screen meanwhile. */
   async function refresh() {
@@ -32,14 +26,14 @@ export function AccountOrderClient({ orderNumber }: { orderNumber: string }) {
   }
 
   useEffect(() => {
-    if (!hydrated || !activePhone) return;
+    if (!hydrated) return;
     let cancelled = false;
     void fetchOrder(orderNumber, activePhone).then((next) => { if (!cancelled) setResult(next); });
     return () => { cancelled = true; };
   }, [hydrated, orderNumber, activePhone]);
 
   const order = result.state === "found" ? result.order : null;
-  const askPhone = hydrated && (!activePhone || result.state === "missing");
+  const askPhone = hydrated && result.state === "missing";
 
   return (
     <>
@@ -68,12 +62,14 @@ export function AccountOrderClient({ orderNumber }: { orderNumber: string }) {
         </form>
       )}
       {result.state === "missing" && (
-        <p className="small" style={{ marginTop: "12px" }}>That phone doesn&apos;t match this order.</p>
+        <p className="small" style={{ marginTop: "12px" }}>
+          {activePhone ? "That phone doesn’t match this order." : "This order isn’t on your account. Enter the phone used at checkout to open it."}
+        </p>
       )}
       {result.state === "error" && (
         <p className="small" style={{ marginTop: "12px" }}>Orders are unavailable right now. Try again in a moment.</p>
       )}
-      {(result.state === "loading" || (result.state === "idle" && (!hydrated || !!activePhone))) && (
+      {(result.state === "loading" || result.state === "idle") && (
         <p className="small mut" style={{ marginTop: "16px" }}>LOADING…</p>
       )}
 

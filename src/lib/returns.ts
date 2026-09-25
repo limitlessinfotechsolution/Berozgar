@@ -64,7 +64,8 @@ export interface ClaimDraft {
 /* The multipart body the ERP expects. Lines with quantity 0 are left out. */
 export function buildReturnFormData(draft: ClaimDraft): FormData {
   const form = new FormData();
-  form.set("phone", draft.phone);
+  // Empty for a signed-in shopper: the session proves the order instead.
+  if (draft.phone) form.set("phone", draft.phone);
   form.set("reason", draft.reason);
   form.set("resolution", draft.resolution);
   form.set("description", draft.description.trim());

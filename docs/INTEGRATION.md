@@ -68,10 +68,12 @@ Image uploads (admin only) follow handbook §9: `POST /api/v1/uploads/presign` �
   two shoppers can buy the last unit. Needs an `ORDER_ALLOCATION` inventory transaction inside
   `createOrder` (or at CONFIRMED) — an ERP-wide decision, not a storefront one.
 - **No online payment capture.** Non-COD orders say so at checkout and on the success page.
-- **Customer login (§6), coupons, reviews** are still local. The admin's coupon/review screens write
-  a `SystemSetting` JSON blob, not the `Coupon`/`Review` tables — fix that before wiring them.
-- **Rate limits key on `x-forwarded-for`**, which a client can set. Fine behind a trusted proxy that
-  overwrites it; not fine exposed directly.
+- **Coupons, reviews** are still local. The admin's coupon/review screens write a `SystemSetting`
+  JSON blob, not the `Coupon`/`Review` tables — being moved to the real tables (ERP roadmap).
+- **Rate limits** key on the shopper IP this server sends as `x-bz-client-ip`, which the ERP only
+  believes alongside the shared `x-bz-storefront` secret (`ERP_SERVER_SECRET` here =
+  `STOREFRONT_SERVER_SECRET` in the ERP). Behind a load balancer set `TRUSTED_PROXY_COUNT` so the
+  right `x-forwarded-for` hop is used.
 - Journal/lookbook "shop the look" referenced the old fixture products; those blocks hide until
   they're pointed at ERP product ids.
 
@@ -84,7 +86,7 @@ Image uploads (admin only) follow handbook §9: `POST /api/v1/uploads/presign` �
 | Purpose | D2C storefront | Made-to-order manufacturing ERP |
 | Stack | Next 16, React 19, Tailwind 4 | Next 14, Prisma, Postgres, Redis/BullMQ, turbo |
 | Data | hardcoded in `src/lib/*.ts` | Postgres via `packages/database` |
-| Auth | `localStorage` mock (`src/components/session-provider.tsx`) | NextAuth, staff only |
+| Auth | ERP customer sessions via an httpOnly cookie (§6) | NextAuth for staff; opaque customer sessions (ADR 0007) |
 
 The ERP's pipeline is `design → approval → production → QC → packing → shipment`. Its handbook
 architecture diagram does list "Customer (Web / WhatsApp)" as a client, so a storefront is
@@ -194,13 +196,14 @@ exact inventory numbers.
 ### Customer auth
 
 ```
-POST /api/public/v1/auth/register
-POST /api/public/v1/auth/login
-GET  /api/public/v1/auth/session
-POST /api/public/v1/auth/logout
+POST /api/public/v1/auth/register            POST /api/public/v1/auth/password/forgot
+POST /api/public/v1/auth/login               POST /api/public/v1/auth/password/reset
+POST /api/public/v1/auth/otp/request         POST /api/public/v1/auth/email/verify
+POST /api/public/v1/auth/otp/verify          POST /api/public/v1/auth/email/verify/resend
+GET  /api/public/v1/auth/session             POST /api/public/v1/auth/logout
 ```
 
-See §6 — the mechanism is an open decision.
+✅ Built — see §6. Full contract: ERP `docs/api/PUBLIC_API.md` §Accounts.
 
 ### Commerce
 
@@ -218,17 +221,63 @@ at checkout or the client can dictate what it pays.
 ### Account (customer session required)
 
 ```
-GET/POST/PATCH/DELETE /api/public/v1/account/addresses
-GET                   /api/public/v1/account/orders
+GET/PATCH             /api/public/v1/account/profile
+POST                  /api/public/v1/account/password
+POST                  /api/public/v1/account/phone            # verify a phone with a code
+GET/POST              /api/public/v1/account/addresses
+PATCH/DELETE          /api/public/v1/account/addresses/:id
+POST                  /api/public/v1/account/addresses/:id/default
+GET                   /api/public/v1/account/orders?cursor=
 GET                   /api/public/v1/account/orders/:orderNumber
-GET/POST/DELETE       /api/public/v1/account/wishlist
+GET/POST              /api/public/v1/account/wishlist
+DELETE                /api/public/v1/account/wishlist/:productId
+GET/PUT               /api/public/v1/account/cart             # { items, merge }
+GET/PATCH             /api/public/v1/account/preferences
+GET/POST              /api/public/v1/account/consents
 ```
+
+✅ Built. This repo reaches them through `/api/account/*` (below).
 
 ---
 
 ## 6. Decision 1 — customer identity
 
-`Customer` has no credentials, and per blocker 4 only the NextAuth-owning app may mint a session.
+**Decided and built (2026-09-25): both** — email + password *and* phone + one-time code. The ERP
+issues an opaque, revocable session token (`bzc_…`, only its HMAC stored; 30-day sliding, 90-day
+absolute). A customer token can never satisfy `withPermission` (ERP ADR 0007).
+
+**How this repo holds it**
+
+- `src/lib/erp-session.ts` — the `bz_session` **httpOnly** cookie (SameSite=Lax, Secure in
+  production), `erpHeaders()` (bearer + `x-bz-client-ip` + `x-bz-storefront`), `callErp()`.
+- `src/lib/erp-account-proxy.ts` + `src/app/api/auth/[...path]` and `src/app/api/account/[...path]`
+  — forward to `/auth/*` and `/account/*`. A response carrying `session.token` has it moved into
+  the cookie and **stripped from the JSON**, so page scripts never see a token. Logout, and any 401
+  on a request that had a cookie, clear it. Non-GET requests must pass a same-origin check.
+  `/api/auth/*` only forwards the ten known paths.
+- `src/components/session-provider.tsx` — asks `/api/auth/session` on load; exposes
+  `loginWithPassword`, `requestOtp`, `loginWithOtp`, `register`, `logout`, `refresh`.
+- `src/components/cart-provider.tsx` — on sign-in merges the device bag with the saved cart
+  (`PUT /account/cart {merge:true}`, each variant once, larger quantity) and the wishlists; later
+  changes are saved back (bag debounced 800 ms). Sign-out empties this device.
+- Checkout, `/api/track`, invoice, returns and cancel proxies send the session too, so a signed-in
+  shopper's own orders need no phone; the order is attached to the account. Tracking answers that
+  depend on the session are `no-store`, never the shared 30 s cache.
+- Pages: `/login` (PASSWORD | ONE-TIME CODE tabs), `/register`, `/forgot-password` (emails a
+  30-minute link), `/reset-password?token=`, `/verify-email?token=`, `/account/profile` (details,
+  phone verification by code, marketing preferences, password set/change), `/account/addresses`,
+  `/account/orders`.
+
+**Env:** `ERP_SERVER_SECRET` must equal the ERP's `STOREFRONT_SERVER_SECRET`.
+`TRUSTED_PROXY_COUNT` (default 0) = reverse proxies in front of this app.
+
+**Phone codes** go out on WhatsApp (`WHATSAPP_OTP_TEMPLATE`), else the account's verified email;
+in development the ERP prints them to its console. In production with neither configured, sign-in
+by code answers 503 and email + password still works.
+
+<details><summary>The original trade-off (kept for context)</summary>
+
+`Customer` had no credentials, and per blocker 4 only the NextAuth-owning app may mint a session.
 
 | | Phone + OTP | Email + password |
 |---|---|---|
@@ -244,6 +293,8 @@ and it avoids storing another password. Cost is rework of `/login`, `/register` 
 **Non-negotiable either way:** customer tokens must be a *distinct audience* from staff JWTs. A
 customer token must never satisfy `withPermission`. Separate signing keys or an explicit `aud` claim
 checked at the boundary.
+
+</details>
 
 ---
 
@@ -331,11 +382,11 @@ counterpart of the failure state now implemented in `src/app/checkout/page.tsx`.
 |---|---|
 | `src/lib/products.ts` | ✅ done — types only; data via `src/lib/catalogue.ts` + `<CatalogueProvider>` |
 | `src/lib/data.ts` (articles, looks) | stays local — §3 |
-| `src/lib/account.ts` (addresses) | `/account/addresses` — still fixtures (needs customer login) |
-| `/account/orders`, `/account/orders/:id` | ✅ real ERP orders — the list is orders placed or tracked on this device (`RECENT_ORDERS_KEY`), each opened with its phone via `/api/track`; becomes `/account/orders` on the ERP once customer login exists |
+| `src/lib/account.ts` (addresses) | ✅ removed — `/account/addresses` reads the ERP address book |
+| `/account/orders`, `/account/orders/:id` | ✅ the account's orders from ERP `/account/orders` (including guest orders for its verified phone); an order not on the account can still be opened with its phone |
 | Order actions (`src/components/order-actions.tsx`) | ✅ done — DOWNLOAD INVOICE → `/api/orders/:id/invoice` (ERP `GET /orders/:n/invoice`); REQUEST RETURN / REQUEST EXCHANGE → `return-request-modal.tsx` → `/api/orders/:id/returns` (ERP `POST /orders/:n/returns`, multipart with photos); withdraw → `/api/orders/:id/returns/:rn/cancel`. Contract: ERP `docs/INTEGRATION.md` §6a–6b |
 | `src/lib/search.ts` | ✅ done — searches the ERP catalogue client-side (5 products; move to `?search=` when it grows) |
-| `src/components/session-provider.tsx` | `/auth/*` — `login()` / `register()` are the only functions that change |
+| `src/components/session-provider.tsx` | ✅ done — ERP sessions via `/api/auth/*` (§6) |
 | `src/app/api/checkout/route.ts` | ✅ done — proxies `POST /checkout`; `/api/checkout/quote` added |
 | `src/components/cart-provider.tsx` | ✅ done — lines keyed by ERP `variantId`, re-resolved against the live catalogue |
 | `src/components/track-order-client.tsx` | ✅ done — `GET /orders/:number?phone=` via `/api/track` |
@@ -346,7 +397,7 @@ counterpart of the failure state now implemented in `src/app/checkout/page.tsx`.
 
 1. **§3** — Collection and Wishlist as backend models, Journal and Lookbook local. Confirm.
    (Interim: collections are ERP categories.)
-2. **§6** — phone+OTP or email+password for customers. Blocks any auth work.
+2. ~~**§6** — phone+OTP or email+password for customers.~~ Decided: both (§6).
 3. ~~**§7** — reuse `Order` or a separate D2C type.~~ Decided: reuse `Order`, with `source` +
    `shippingAddressId` (migration `20260919000000_storefront_integration`).
 4. Badges: stored flags or derived rules (§4).

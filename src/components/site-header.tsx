@@ -153,7 +153,7 @@ export function SiteHeader() {
           <Link href="/track-order">TRACK ORDER</Link>
           <Link href="/help/contact">CONTACT</Link>
           {isAuthenticated ? (
-            <Link href="/" onClick={() => logout()}>LOG OUT</Link>
+            <Link href="/" onClick={() => void logout()}>LOG OUT</Link>
           ) : (
             <Link href="/login">LOG IN</Link>
           )}

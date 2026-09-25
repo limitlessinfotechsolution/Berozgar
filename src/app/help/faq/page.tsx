@@ -35,8 +35,8 @@ const GROUPS: FaqGroup[] = [
   {
     category: "RETURNS & EXCHANGES",
     items: [
-      ["WHAT'S YOUR RETURN WINDOW?", "14 days from delivery, on unworn items with tags still attached."],
-      ["ARE SIZE EXCHANGES FREE?", "Yes — size exchanges are free, subject to stock in the size you want."],
+      ["WHAT CAN I RETURN?", "Items that arrive damaged, defective or wrong. Raise a claim from your order page soon after delivery, with a photo — the Return Policy has the exact window."],
+      ["CAN I EXCHANGE FOR A DIFFERENT SIZE?", "No. Every piece is printed to order, so a size you chose can't be returned or swapped. Check the size guide on the product page before you order."],
       ["HOW LONG DO REFUNDS TAKE?", "Once the return reaches us and passes inspection, refunds are issued to the original payment method."],
     ],
   },
