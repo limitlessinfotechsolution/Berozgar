@@ -68,6 +68,14 @@ export function ProductDetail({ product }: { product: Product }) {
     return () => observer.disconnect();
   }, []);
 
+  /* globals.css hides the bottom nav while the buy bar is up. */
+  useEffect(() => {
+    const root = document.documentElement;
+    if (stickyShown) root.dataset.buybar = "";
+    else delete root.dataset.buybar;
+    return () => { delete root.dataset.buybar; };
+  }, [stickyShown]);
+
   const hasPhotos = product.images.length > 0;
   const slides = hasPhotos ? product.images.length : 5;
   const alsoLike = products
@@ -143,7 +151,8 @@ export function ProductDetail({ product }: { product: Product }) {
     <div className="page-fade">
       <RevealObserver />
       <div className="wrap">
-        <div className="crumb">
+        {/* Desktop only: on a phone the first screen is for the product itself. */}
+        <div className="crumb only-d">
           <Link href="/">HOME</Link> / <Link href="/shop">SHOP</Link> / {product.name}
         </div>
 
@@ -333,13 +342,6 @@ export function ProductDetail({ product }: { product: Product }) {
         {/* Approved reviews from delivered orders; renders nothing until there is one. */}
         <ProductReviews slug={product.slug} />
 
-        <section className="sec sec-of">
-          <div className="wrap">
-            <div className="sec-t"><h2 className="h2">WHAT&apos;S YOUR SIZE?</h2></div>
-            <SizeFinder fit={(product.fit || "oversized").toLowerCase()} />
-          </div>
-        </section>
-
         {alsoLike.length > 0 && (
           <section className="sec">
             <div className="wrap">
@@ -359,6 +361,11 @@ export function ProductDetail({ product }: { product: Product }) {
           <div className="modal-box" role="dialog" aria-label="Size guide">
             <button className="xbtn" style={{ position: "absolute", top: "10px", right: "10px" }} aria-label="Close" onClick={() => setSizeGuide(false)}>✕</button>
             <h3 className="h2" style={{ marginBottom: "20px" }}>SIZE GUIDE</h3>
+            {/* The finder lives here, beside the size picker it answers — as a page
+                section it sat between reviews and related products, far from both. */}
+            <h4 className="cap" style={{ margin: "0 0 10px" }}>FIND YOUR SIZE</h4>
+            <SizeFinder fit={(product.fit || "oversized").toLowerCase()} />
+            <h4 className="cap" style={{ margin: "24px 0 10px" }}>SIZE CHART</h4>
             <SizeChartTable />
             <h4 className="cap" style={{ margin: "24px 0 10px" }}>HOW TO MEASURE</h4>
             <HowToMeasure />

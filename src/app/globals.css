@@ -279,7 +279,10 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 }
 /* ============ 11 BOTTOM NAV ============ */
 #bnav{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;background:var(--wt);border-top:1px solid var(--gy);
-  padding-bottom:env(safe-area-inset-bottom)}
+  padding-bottom:env(safe-area-inset-bottom);transition:transform .3s var(--e)}
+/* While the PDP's buy bar is up it takes the bottom edge: one fixed bar, not two stacked (~130px). */
+html[data-buybar] #bnav{transform:translateY(100%)}
+html[data-buybar] #sticky-cta{bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
 #bnav ul{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 /* Search is a <button>, not a link — it opens the overlay. It has to be styled
    alongside the anchors or it renders with no layout and an unsized icon. */
@@ -382,12 +385,15 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .pg-mob::-webkit-scrollbar{display:none}
 /* Exactly one track width per slide, which is what makes scrollLeft/clientWidth
    the slide index in product-detail.tsx. No gap: edge to edge means no seam. */
-.pg-mob .slide{flex:0 0 100%;scroll-snap-align:start;aspect-ratio:3/4}
+/* 3:4, but never so tall that name, price and size fall below the first screen:
+   capped at 56% of the small viewport (390×844 → 473px, 360×740 → 414px). */
+.pg-mob .slide{flex:0 0 100%;scroll-snap-align:start;height:min(133.33vw,56svh)}
 /* Inset to the page gutter so it lines up with the copy below, not the screen edge. */
 .pg-mobwrap .badge{top:12px;left:var(--pad)}
-.pg-dots{display:flex;justify-content:center;gap:2px;padding:12px 0 0}
-.pg-dots button{width:32px;height:44px;display:flex;align-items:center;justify-content:center}
-.pg-dots i{display:block;width:6px;height:6px;border-radius:50%;background:#ccc;transition:background var(--tf),transform var(--tf)}
+/* On the image, not in a row under it — that row cost 56px of the first screen. */
+.pg-dots{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);display:flex;justify-content:center;padding:0 4px;border-radius:22px;background:rgba(255,255,255,.85)}
+.pg-dots button{width:26px;height:36px;display:flex;align-items:center;justify-content:center}
+.pg-dots i{display:block;width:6px;height:6px;border-radius:50%;background:#8a8a8a;transition:background var(--tf),transform var(--tf)}
 .pg-dots button.on i{background:var(--bk);transform:scale(1.35)}
 .pg-stock{margin-top:10px}
 .pinfo h1{margin:6px 0 10px}
@@ -439,6 +445,7 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .sfind{border:1px solid var(--bk);padding:clamp(20px,3vw,36px);max-width:560px}
 .sfind .frow{margin-bottom:0}
 .sfind-res{margin-top:20px;font-size:15px}
+.modal-box .sfind{border:0;padding:0;max-width:none}
 .sfind-res b{font-size:20px;letter-spacing:.06em}
 #sticky-cta{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:880;background:var(--wt);border-top:1px solid var(--gy);
   display:none;align-items:center;justify-content:space-between;gap:14px;padding:10px 16px;transform:translateY(120%);transition:transform .3s var(--e)}
@@ -453,7 +460,8 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .ci .nm{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .ci .mt{font-size:12px;color:#888;margin:4px 0 10px;letter-spacing:.06em;text-transform:uppercase}
 .ci .qty button{width:34px;height:36px}
-.ci .rm{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-top:10px}
+.ci-end{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:8px}
+.ci .rm{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#666;min-height:44px;padding:0 0 0 12px;text-decoration:underline;text-underline-offset:3px}
 .ci .rm:hover{color:var(--ru)}
 .coupon{display:flex;gap:0;border:1px solid var(--bk);margin:18px 0}
 .coupon input{flex:1;min-width:0;border:0;padding:0 14px;min-height:46px;outline:none}
@@ -488,6 +496,18 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
 .del-opt{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #ccc;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all var(--tf)}
 .del-opt.on{border-color:var(--bk);border-width:2px}
 .co-sum{border:1px solid var(--gy);padding:24px;position:sticky;top:calc(var(--hdr) + 20px)}
+.co-sum-toggle{display:none}
+@media(max-width:900px){
+  /* Above the form, one line with the total until opened (the Indian D2C norm). */
+  .co-lay .co-sum{order:-1;position:static;padding:0 16px}
+  .co-lay .co-sum-h{display:none}
+  .co-sum-toggle{display:flex;width:100%;justify-content:space-between;align-items:center;min-height:52px;font-size:11px;font-weight:800;letter-spacing:.14em}
+  .co-sum-toggle .num{font-size:15px;letter-spacing:0}
+  .co-lay .co-sum:not(.open) .co-sum-body{display:none}
+  .co-lay .co-sum.open .co-sum-body{padding-bottom:18px}
+  /* Focus mode drops the bottom nav, so the space reserved for it goes too. */
+  body:has(.co-head){padding-bottom:env(safe-area-inset-bottom)}
+}
 .co-fail{text-align:center;padding:60px 20px;border:2px solid var(--ru)}
 .co-fail h2{color:var(--ru);margin-bottom:10px}
 /* Inline variant: shown in the review step when placement fails. */

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { isFocusRoute } from "@/lib/focus";
 import { useCart } from "@/components/cart-provider";
 import { useSession } from "@/components/session-provider";
 import { useCatalogue } from "@/components/catalogue-provider";
@@ -20,6 +21,7 @@ export function SiteHeader() {
   const { isAuthenticated, logout } = useSession();
   const { products, categories: catalogueCategories } = useCatalogue();
   const router = useRouter();
+  const pathname = usePathname();
   const shippingRule = useShippingRule();
   const subtotal = items.reduce((sum, item) => sum + (item.product.priceMinor * item.quantity), 0);
   
@@ -52,6 +54,8 @@ export function SiteHeader() {
     setSearchOpen(false);
     setSearchQuery("");
   };
+
+  if (isFocusRoute(pathname)) return null;
 
   return (
     <>

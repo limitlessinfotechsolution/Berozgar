@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/components/session-provider";
+import { isFocusRoute } from "@/lib/focus";
 
 const SOCIALS: [string, string][] = [
   ["INSTAGRAM", "https://instagram.com/"],
@@ -13,7 +14,9 @@ const SOCIALS: [string, string][] = [
 export function SiteFooter() {
   const pathname = usePathname();
   const { isAuthenticated } = useSession();
-  
+
+  if (isFocusRoute(pathname)) return null;
+
   return (
     <>
       <footer className="brz-footer mt-auto">

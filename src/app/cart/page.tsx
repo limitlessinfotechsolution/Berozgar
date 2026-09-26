@@ -54,18 +54,21 @@ export default function CartPage() {
                   <Link className="nm" href={`/shop/${item.product.slug}`}>{item.product.name}</Link>
                   <div className="mt">{item.size} · {item.colour}</div>
                   <div className="qty">
-                    <button onClick={() => updateQuantity(item.variantId, item.quantity - 1)}>−</button>
-                    <b>{item.quantity}</b>
-                    <button onClick={() => updateQuantity(item.variantId, item.quantity + 1)}>+</button>
+                    <button aria-label={`One fewer ${item.product.name}`} onClick={() => updateQuantity(item.variantId, item.quantity - 1)}>−</button>
+                    <b aria-live="polite">{item.quantity}</b>
+                    <button aria-label={`One more ${item.product.name}`} onClick={() => updateQuantity(item.variantId, item.quantity + 1)}>+</button>
                   </div>
+                </div>
+                <div className="ci-end">
+                  <b className="price">{inr(item.product.priceMinor * item.quantity)}</b>
                   <button
                     className="rm"
+                    aria-label={`Remove ${item.product.name}, ${item.size} ${item.colour}`}
                     onClick={() => { removeItem(item.variantId); showToast("ITEM REMOVED"); }}
                   >
                     REMOVE
                   </button>
                 </div>
-                <b className="price">{inr(item.product.priceMinor * item.quantity)}</b>
               </div>
             ))}
 
@@ -89,11 +92,12 @@ export default function CartPage() {
               <span>Shipping</span>
               <span className="num">{shipping === 0 ? "FREE" : inr(shipping)}</span>
             </div>
+            {/* Not "Total": GST is added at checkout, so this isn't what they'll pay. */}
             <div className="sumrow tot">
-              <span>Total</span>
+              <span>Estimated total</span>
               <span className="num">{inr(subtotal + shipping)}</span>
             </div>
-            <p className="small mut" style={{ marginTop: "6px" }}>Prices exclude GST — it&apos;s added at checkout.</p>
+            <p className="small mut" style={{ marginTop: "6px" }}>Before GST, which is added at checkout.</p>
             <Link href="/checkout" className="btn btn-full" style={{ marginTop: "18px" }}>CHECKOUT</Link>
             <Link href="/shop" className="btn btn-o btn-full" style={{ marginTop: "12px" }}>CONTINUE SHOPPING</Link>
           </div>

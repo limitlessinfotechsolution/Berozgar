@@ -83,6 +83,8 @@ export default function CheckoutPage() {
   /* City, state, delivery window and COD rule for the entered pincode, from the ERP. */
   const [pinInfo, setPinInfo] = useState<PincodeInfo | null>(null);
   const [express, setExpress] = useState(false);
+  /* Phones: the summary sits above the form, collapsed to one line with the total. */
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [payment, setPayment] = useState("upi");
   const [placing, setPlacing] = useState(false);
   // Which policy versions this page showed, and whether the customer accepted
@@ -127,6 +129,12 @@ export default function CheckoutPage() {
     landmark: "",
     ...deliveryEdits,
   };
+  /* The browser's own "match the requested format" doesn't say how to fix it. */
+  const explain = (message: string) => ({
+    onInvalid: (e: React.FormEvent<HTMLInputElement>) => e.currentTarget.setCustomValidity(message),
+    onInput: (e: React.FormEvent<HTMLInputElement>) => e.currentTarget.setCustomValidity(""),
+  });
+
   const field = (key: keyof Delivery) => ({
     value: delivery[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setDeliveryEdits((d) => ({ ...d, [key]: e.target.value })),
@@ -405,7 +413,7 @@ export default function CheckoutPage() {
       <div className="co-head">
         <div className="wrap">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0 0" }}>
-            <Link href="/" className="logo" style={{ fontSize: "15px" }}>BEROZGAR</Link>
+            <Link href="/cart" className="logo" style={{ fontSize: "15px" }} aria-label="Berozgar — back to your bag">BEROZGAR</Link>
             <span className="cap mut">🔒 SECURE CHECKOUT</span>
           </div>
           <div className="co-steps">
@@ -439,14 +447,14 @@ export default function CheckoutPage() {
               <form onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
                 <div className="fgrp">
                   <label className="fl" htmlFor="co-email">EMAIL</label>
-                  <input className="inp" id="co-email" type="email" required value={email} onChange={(e) => setEmailEdit(e.target.value)} />
+                  <input className="inp" id="co-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmailEdit(e.target.value)} {...explain("Enter the email address order updates should go to, like name@example.com.")} />
                 </div>
                 <p className="small mut" style={{ margin: "0 0 14px" }}>Order updates will be sent here.</p>
-                <label className="ck" style={{ marginBottom: "22px" }}>
+                <label className="ck" style={{ marginBottom: "22px", alignItems: "flex-start" }}>
                   <input type="checkbox" checked={marketingConsent} onChange={(e) => setMarketingConsent(e.target.checked)} />{" "}
-                  EMAIL ME DROPS &amp; OFFERS (AND A REMINDER IF I LEAVE ITEMS IN MY BAG)
+                  Email me about new drops and offers, and remind me if I leave something in my bag.
                 </label>
-                <button className="btn btn-full" type="submit">CONTINUE TO DELIVERY →</button>
+                <button className="btn btn-full" type="submit">CONTINUE TO DELIVERY</button>
               </form>
             </>
           )}
@@ -476,6 +484,7 @@ export default function CheckoutPage() {
                     placeholder="10-digit mobile"
                     pattern="(\+?91|0)?[\s-]?[6-9][0-9\s-]{9,12}"
                     {...field("phone")}
+                    {...explain("Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9.")}
                   />
                 </div>
                 <div className="fgrp">
@@ -501,6 +510,7 @@ export default function CheckoutPage() {
                     pattern="[1-9][0-9]{5}"
                     autoComplete="postal-code"
                     {...field("pincode")}
+                    {...explain("Enter your 6-digit pincode.")}
                   />
                   {pinWindow && (
                     <small className="small mut" style={{ display: "block", marginTop: "6px" }}>
@@ -538,8 +548,8 @@ export default function CheckoutPage() {
                 </div>
 
                 <div style={{ display: "grid", gap: "10px", marginTop: "22px" }}>
-                  <button className="btn btn-full" type="submit">CONTINUE TO PAYMENT →</button>
-                  <button type="button" className="btn btn-o btn-full" onClick={() => setStep(1)}>← BACK</button>
+                  <button className="btn btn-full" type="submit">CONTINUE TO PAYMENT</button>
+                  <button type="button" className="btn btn-o btn-full" onClick={() => setStep(1)}>BACK</button>
                 </div>
               </form>
             </>
@@ -586,9 +596,9 @@ export default function CheckoutPage() {
                   disabled={payment === "cod" && codBlocked}
                   onClick={() => setStep(4)}
                 >
-                  {payment === "cod" && codBlocked ? "CHOOSE ANOTHER PAYMENT METHOD" : "CONTINUE TO REVIEW →"}
+                  {payment === "cod" && codBlocked ? "CHOOSE ANOTHER PAYMENT METHOD" : "CONTINUE TO REVIEW"}
                 </button>
-                <button className="btn btn-o btn-full" onClick={() => setStep(2)}>← BACK</button>
+                <button className="btn btn-o btn-full" onClick={() => setStep(2)}>BACK</button>
               </div>
             </>
           )}
@@ -683,15 +693,26 @@ export default function CheckoutPage() {
                     : `${failure ? "RETRY" : "PLACE ORDER"} — ${inrDecimal(priced.totals!.grandTotal)}`}
                 </button>
                 <button className="btn btn-o btn-full" onClick={() => setStep(failure ? 2 : 3)}>
-                  {failure ? "← CHECK DELIVERY DETAILS" : "← BACK"}
+                  {failure ? "CHECK DELIVERY DETAILS" : "BACK"}
                 </button>
               </div>
             </>
           )}
         </div>
 
-        <aside className="co-sum">
-          <h3 className="cap" style={{ marginBottom: "14px" }}>ORDER SUMMARY</h3>
+        <aside className={`co-sum ${summaryOpen ? "open" : ""}`.trim()}>
+          <h3 className="cap co-sum-h" style={{ marginBottom: "14px" }}>ORDER SUMMARY</h3>
+          <button
+            type="button"
+            className="co-sum-toggle"
+            aria-expanded={summaryOpen}
+            aria-controls="co-sum-body"
+            onClick={() => setSummaryOpen((open) => !open)}
+          >
+            <span>{summaryOpen ? "HIDE" : "SHOW"} ORDER SUMMARY</span>
+            <b className="num">{priced ? inrDecimal(priced.totals!.grandTotal) : inr(subtotal + shipping)}</b>
+          </button>
+          <div id="co-sum-body" className="co-sum-body">
           {items.map((item) => (
             <div className="sumrow" key={item.variantId}>
               <span className="small">
@@ -783,6 +804,7 @@ export default function CheckoutPage() {
               </div>
             </>
           )}
+          </div>
         </aside>
       </div>
     </div>
