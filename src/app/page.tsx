@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { ProductCard } from "@/components/product-card";
-import { HeroPlate, Plate } from "@/components/product-plate";
+import { HeroPlate, PhotoPlate, Plate } from "@/components/product-plate";
 import { RevealObserver } from "@/components/reveal-observer";
 import { useCatalogue } from "@/components/catalogue-provider";
 import { openQuickAdd } from "@/lib/ui-events";
@@ -21,8 +21,20 @@ export default function Home() {
   /* Products come from the ERP; the homepage features the newest, then the rest. */
   const { products } = useCatalogue();
   const featured = products.slice(0, 4);
-  const more = products.slice(4, 10).length ? products.slice(4, 10) : products.slice(0, 6);
-  const inStock = products.filter((p) => !p.soldout);
+  /* Only what the grid above didn't show — never the same four again as filler. */
+  const more = products.slice(4, 10);
+  /* Four cards fit the desktop track; arrows only when there's something to scroll to. */
+  const moreScrolls = more.length > 4;
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+
+  /* A section renders only with real content behind it: the lookbook needs
+     photographs, and "build the fit" needs a photographed look whose products
+     are still in the catalogue — its hotspots are that look's own items. */
+  const photoLooks = looks.filter((look) => look.image);
+  const fitLook = photoLooks.find((look) => look.itemSlugs.some((slug) => bySlug.get(slug) && !bySlug.get(slug)!.soldout));
+  const fitItems = fitLook
+    ? fitLook.itemSlugs.map((slug) => bySlug.get(slug)).filter((p) => p && !p.soldout).slice(0, HOTSPOTS.length)
+    : [];
 
   /* Lookbook and journal come from src/lib/data.ts, the same source /lookbook and
      /journal read, so an edit there changes every surface that shows them. */
@@ -107,6 +119,7 @@ export default function Home() {
           </section>
 
           {/* 5. BEST SELLERS CAROUSEL SECTION */}
+          {more.length > 0 && (
           <section className="sec">
             <div className="wrap">
               <div className="sec-t" data-rev="true">
@@ -114,26 +127,31 @@ export default function Home() {
                 <Link href="/shop" className="tlink">SHOP ALL →</Link>
               </div>
               <div className="car-wrap">
-                <button
-                  className="car-nav car-prev only-d"
-                  aria-label="Previous"
-                  onClick={() => scrollCarousel(-1)}
-                >
-                  ←
-                </button>
+                {moreScrolls && (
+                  <button
+                    className="car-nav car-prev only-d"
+                    aria-label="Previous"
+                    onClick={() => scrollCarousel(-1)}
+                  >
+                    ←
+                  </button>
+                )}
                 <div className="car" id="best-car" ref={carousel}>
                   {more.map(product => <ProductCard key={product.id} product={product} />)}
                 </div>
-                <button
-                  className="car-nav car-next only-d"
-                  aria-label="Next"
-                  onClick={() => scrollCarousel(1)}
-                >
-                  →
-                </button>
+                {moreScrolls && (
+                  <button
+                    className="car-nav car-next only-d"
+                    aria-label="Next"
+                    onClick={() => scrollCarousel(1)}
+                  >
+                    →
+                  </button>
+                )}
               </div>
             </div>
           </section>
+          )}
 
           {/* 6. MANIFESTO BAND */}
           <section className="sec sec-bk manif-home">
@@ -149,7 +167,8 @@ export default function Home() {
             </div>
           </section>
 
-          {/* 7. LOOKBOOK GRID */}
+          {/* 7. LOOKBOOK GRID — photographed looks only (see photoLooks) */}
+          {photoLooks.length > 0 && (
           <section className="sec">
             <div className="wrap">
               <div className="sec-t" data-rev="true">
@@ -157,21 +176,22 @@ export default function Home() {
                 <Link href="/lookbook" className="tlink">VIEW LOOKBOOK →</Link>
               </div>
               <div className="lookgrid">
-                {looks.map((look, i) => (
+                {photoLooks.map((look, i) => (
                   <Link className={`looktile ${look.size}`} href={`/lookbook/${look.slug}`} key={look.slug}>
-                    <Plate
-                      slug={look.slug}
-                      word={look.name.replace("LOOK ", "L")}
+                    <PhotoPlate
+                      src={look.image!}
                       label={look.name}
-                      variant={i}
+                      fallback={<Plate slug={look.slug} word={look.name.replace("LOOK ", "L")} label={look.name} variant={i} />}
                     />
                   </Link>
                 ))}
               </div>
             </div>
           </section>
+          )}
 
-          {/* 8. SHOP THE LOOK HOTSPOTS */}
+          {/* 8. SHOP THE LOOK HOTSPOTS — a real photo with its own items (see fitLook) */}
+          {fitLook && fitItems.length > 0 && (
           <section className="sec sec-of">
             <div className="wrap">
               <div className="sec-t" data-rev="true">
@@ -182,26 +202,22 @@ export default function Home() {
               </div>
               <div className="hotwrap" data-rev="true">
                 <div style={{ aspectRatio: "16 / 10" }}>
-                  <div className="plate t3 pt-a" role="img" aria-label="Shop the look">
-                    <span className="pl-num">29</span>
-                    <span className="pl-word">THE FIT</span>
-                    <span className="pl-tag">UNEMPLOYED</span>
-                    <span className="pl-vert">BEROZGAR</span>
-                  </div>
+                  <PhotoPlate src={fitLook.image!} label={fitLook.name} />
                 </div>
-                {inStock.slice(0, HOTSPOTS.length).map((product, i) => (
+                {fitItems.map((product, i) => (
                   <button
-                    key={product.id}
+                    key={product!.id}
                     className="hot"
                     style={HOTSPOTS[i]}
-                    aria-label={`Quick add ${product.name}`}
-                    onClick={() => openQuickAdd(product.id)}
+                    aria-label={`Quick add ${product!.name}`}
+                    onClick={() => openQuickAdd(product!.id)}
                   ></button>
                 ))}
               </div>
-              <p className="small mut" style={{ marginTop: "12px" }}>Click a hotspot → quick add.</p>
+              <p className="small mut" style={{ marginTop: "12px" }}>Tap a point on the photo to add that piece.</p>
             </div>
           </section>
+          )}
 
           {/*
             No #BEROZGAR UGC grid. It listed eight invented customers by Instagram

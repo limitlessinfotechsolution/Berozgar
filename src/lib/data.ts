@@ -30,6 +30,9 @@ export type Look = {
   name: string;
   itemSlugs: string[];
   size: string;    // Grid span class: look-a | look-b
+  /* A real photograph. A look is only shown on the homepage once it has one —
+     without it the tile is an empty panel standing in for an image. */
+  image?: string;
 };
 
 export const articles: Article[] = [

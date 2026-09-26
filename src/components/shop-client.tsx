@@ -46,6 +46,8 @@ export function ShopClient({
     ...(facets.hasSale ? [[SALE, "SALE"] as [string, string]] : []),
   ];
   const activeTab = query.cat || "all";
+  /* "ALL" plus one other tab is the same list twice: only offer tabs that split the shop. */
+  const showTabs = tabs.length > 2;
   const filterCount = activeFilterCount(query);
 
   const [sheet, setSheet] = useState<"filter" | "sort" | null>(null);
@@ -83,6 +85,7 @@ export function ShopClient({
           </p>
         </header>
 
+        {showTabs && (
         <nav className="cats" style={{ padding: "14px 0" }} aria-label="Shop sections">
           {tabs.map(([slug, label]) => (
             <Link
@@ -95,6 +98,7 @@ export function ShopClient({
             </Link>
           ))}
         </nav>
+        )}
 
         <div className="m-filterbar">
           <button className="chip" onClick={() => setSheet("filter")}>
