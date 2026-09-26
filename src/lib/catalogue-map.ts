@@ -24,12 +24,13 @@ export type ErpProduct = {
   collection?: string | null;
   badge?: string | null;
   createdAt?: string;
-  category: { id: string; name: string } | null;
+  /* slug arrived with the category_slug migration; an older ERP omits it. */
+  category: { id: string; name: string; slug?: string } | null;
   images: { id: string; url: string }[];
   variants: { id: string; size: string; colour: string; stock: number }[];
 };
 
-export type ErpCategory = { id: string; name: string; productCount: number };
+export type ErpCategory = { id: string; name: string; slug?: string; productCount: number };
 
 /* "ONLY N LEFT" is shown at or below this many units across all variants. */
 export const LOW_STOCK_AT = 10;
@@ -52,7 +53,8 @@ export function toProduct(p: ErpProduct): Product {
     word: (name.split(/\s+/)[0] ?? "BRZ").slice(0, 10),
     priceMinor: toMinor(p.basePrice) ?? 0,
     compareAtMinor: toMinor(p.compareAtPrice),
-    category: slugify(categoryName),
+    /* The ERP's stored slug survives a rename; slugifying the name is the old-ERP fallback. */
+    category: p.category?.slug || slugify(categoryName),
     categoryName,
     colors,
     sizes,

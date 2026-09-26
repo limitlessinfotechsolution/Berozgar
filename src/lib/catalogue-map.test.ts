@@ -28,6 +28,12 @@ describe("toProduct", () => {
     expect(p.categoryName).toBe("T-SHIRTS");
   });
 
+  it("keeps the ERP's category slug through a rename", () => {
+    const p = toProduct(erp({ category: { id: "c1", name: "Tees & Tops", slug: "t-shirts" } }));
+    expect(p.category).toBe("t-shirts");
+    expect(p.categoryName).toBe("TEES & TOPS");
+  });
+
   it("orders sizes S → XL and lists colours once", () => {
     const p = toProduct(erp());
     expect(p.sizes).toEqual(["S", "M", "XL"]);
