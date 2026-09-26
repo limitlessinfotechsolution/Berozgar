@@ -22,7 +22,8 @@ cp .env.local.example .env.local   # ERP_API_URL, REVALIDATE_SECRET
 npm run dev                        # :3003 (admin owns :3000)
 ```
 
-`REVALIDATE_SECRET` here must equal `STOREFRONT_REVALIDATE_SECRET` in `apps/admin/.env`, and
+`REVALIDATE_SECRET` here (and in the Netlify UI for the hosted site) must equal
+`STOREFRONT_REVALIDATE_SECRET` in `apps/admin/.env`, `apps/api/.env` and `apps/worker/.env`, and
 `apps/api/.env` needs `S3_PUBLIC_URL` (e.g. `http://localhost:9000/berozgar-files`). Buckets created
 before the compose file gained its policy step need `node --env-file=../../apps/api/.env
 scripts/public-product-images.mjs` once, from `packages/storage`.
@@ -31,8 +32,9 @@ scripts/public-product-images.mjs` once, from `packages/storage`.
 
 | Direction | Path |
 |---|---|
-| Admin → site (catalogue) | Admin server action → API → Postgres, then `apps/admin/lib/storefront.ts` `notifyStorefront("catalogue")` → `POST :3003/api/revalidate` → `revalidateTag("catalogue", { expire: 0 })`. Next page view re-reads `GET /api/public/v1/products`. Hooked into product create/update, variant add, stock set/adjust, image upload/remove, category create. |
-| Admin → site (tracking) | Order status change → `notifyStorefront("orders")` → tracking cache expires. |
+| Admin → site (catalogue) | Admin server action → API → Postgres, then `notifyStorefront("catalogue")` (ERP `packages/database/src/storefront-cache.ts`) → `POST :3003/api/revalidate` → `revalidateTag("catalogue", { expire: 0 })`. Next page view re-reads `GET /api/public/v1/products`. Hooked into product create/update, variant add, stock set/adjust, image upload/remove, category create. |
+| ERP → site (tracking) | Every order event (status, shipment, payment, invoice, return) → the ERP worker calls `notifyStorefront("order:<number>")` → only that order's tracking answer expires. The admin still sends `"orders"` on its own status changes. |
+| ERP → site (reviews, settings) | Review moderation (API) → `"review:<slug>"`. Settings → Shipping saved (admin) → `"settings"`. |
 | Site → admin (orders) | `/checkout` → `POST :3003/api/checkout` (server proxy) → `POST /api/public/v1/checkout` → `createOrder()` with `source: "web"`. Appears in admin Orders at `NEW`. |
 | Fallback | Every storefront read also has a 60 s (catalogue) / 30 s (tracking) revalidate window, so a missed hook self-heals. |
 

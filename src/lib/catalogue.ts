@@ -1,3 +1,4 @@
+import { productTag } from "@/lib/cache-tags";
 import { toProduct, type ErpProduct } from "@/lib/catalogue-map";
 import type { Product } from "@/lib/products";
 
@@ -192,7 +193,7 @@ export async function getUpcomingDrops(): Promise<UpcomingDrop[]> {
 export async function getCatalogueProduct(slug: string): Promise<Product | null> {
   try {
     const res = await fetch(erpUrl(`/products/${encodeURIComponent(slug)}`), {
-      next: { tags: [CATALOGUE_TAG], revalidate: REVALIDATE_SECONDS },
+      next: { tags: [CATALOGUE_TAG, productTag(slug)], revalidate: REVALIDATE_SECONDS },
     });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`product ${slug} returned ${res.status}`);
