@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { isFocusRoute } from "@/lib/focus";
+import { useDialog } from "@/lib/use-dialog";
 import { useCart } from "@/components/cart-provider";
 import { useSession } from "@/components/session-provider";
 import { useCatalogue } from "@/components/catalogue-provider";
@@ -42,6 +43,10 @@ export function SiteHeader() {
       document.removeEventListener('open-cart', handleOpenCart);
     };
   }, [mobileOpen, cartOpen, searchOpen]);
+
+  const mnavDialog = useDialog<HTMLElement>(mobileOpen, () => setMobileOpen(false));
+  const cartDialog = useDialog<HTMLElement>(cartOpen, () => setCartOpen(false));
+  const searchDialog = useDialog<HTMLDivElement>(searchOpen, () => setSearchOpen(false));
 
   const query = searchQuery.trim();
   const results = query ? searchProducts(products, query) : idleSuggestions(products);
@@ -139,7 +144,7 @@ export function SiteHeader() {
       <div id="scrim" className={mobileOpen || cartOpen || searchOpen ? "open" : ""} onClick={closeAll}></div>
 
       {/* Mobile Nav Drawer */}
-      <aside id="mnav" className={`ovl ${mobileOpen ? "open" : ""}`} aria-label="Mobile menu" style={{ left: 0, right: 'auto', transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)', borderLeft: 'none', borderRight: '1px solid var(--gy)' }}>
+      <aside id="mnav" className={`ovl ${mobileOpen ? "open" : ""}`} role="dialog" aria-label="Mobile menu" {...mnavDialog} style={{ left: 0, right: 'auto', transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)', borderLeft: 'none', borderRight: '1px solid var(--gy)' }}>
         <div className="ovl-head">
           <b>BEROZGAR</b>
           <button className="xbtn" aria-label="Close" onClick={() => setMobileOpen(false)}>✕</button>
@@ -168,7 +173,7 @@ export function SiteHeader() {
       </aside>
 
       {/* Cart Drawer */}
-      <aside id="cart-drawer" className={`ovl ${cartOpen ? "open" : ""}`} aria-label="Bag">
+      <aside id="cart-drawer" className={`ovl ${cartOpen ? "open" : ""}`} role="dialog" aria-label="Bag" {...cartDialog}>
         <div className="ovl-head">
           <b>YOUR BAG</b>
           <button className="xbtn" aria-label="Close" onClick={() => setCartOpen(false)}>✕</button>
@@ -219,7 +224,7 @@ export function SiteHeader() {
       </aside>
 
       {/* Search Overlay */}
-      <div id="search" role="dialog" aria-label="Search" className={searchOpen ? "open" : ""}>
+      <div id="search" role="dialog" aria-label="Search" className={searchOpen ? "open" : ""} {...searchDialog}>
         <div className="s-in">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <span className="cap">SEARCH BEROZGAR</span>

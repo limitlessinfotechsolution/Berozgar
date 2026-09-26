@@ -43,6 +43,9 @@ ul{list-style:none}
 /* The side gutter lives in padding-inline. Set vertical space with padding-top/bottom on a .wrap —
    a "40px 0" shorthand (inline or in a co-class) zeroes the gutter and puts text on the phone edge. */
 .wrap{max-width:1360px;margin:0 auto;padding:0 var(--pad)}
+.skip-link{position:fixed;top:8px;left:8px;z-index:2000;background:var(--bk);color:var(--wt);padding:12px 18px;font-size:12px;font-weight:800;letter-spacing:.1em;transform:translateY(-200%)}
+.skip-link:focus{transform:none}
+#app:focus{outline:none}
 .sec{padding:clamp(56px,8vw,110px) 0}
 .sec-of{background:var(--of)}
 .sec-bk{background:var(--bk);color:var(--wt)}

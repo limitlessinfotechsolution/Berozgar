@@ -16,6 +16,7 @@ import { requestStockAlert } from "@/lib/audience";
 import { PincodeCheck } from "@/components/pincode-check";
 import { RecentlyViewed } from "@/components/recently-viewed";
 import { ProductReviews } from "@/components/product-reviews";
+import { useDialog } from "@/lib/use-dialog";
 import { useShippingRule } from "@/components/store-settings-provider";
 import { formatINR as inr } from "@/lib/money";
 
@@ -34,6 +35,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const [gallery, setGallery] = useState(0);
   const [openAcc, setOpenAcc] = useState(0);
   const [sizeGuide, setSizeGuide] = useState(false);
+  const sizeDialog = useDialog<HTMLDivElement>(sizeGuide, () => setSizeGuide(false));
   const [stickyShown, setStickyShown] = useState(false);
   const mobTrack = useRef<HTMLDivElement>(null);
 
@@ -358,7 +360,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
       {sizeGuide && (
         <div id="modal" className="open" onClick={(e) => { if (e.target === e.currentTarget) setSizeGuide(false); }}>
-          <div className="modal-box" role="dialog" aria-label="Size guide">
+          <div className="modal-box" role="dialog" aria-label="Size guide" {...sizeDialog}>
             <button className="xbtn" style={{ position: "absolute", top: "10px", right: "10px" }} aria-label="Close" onClick={() => setSizeGuide(false)}>✕</button>
             <h3 className="h2" style={{ marginBottom: "20px" }}>SIZE GUIDE</h3>
             {/* The finder lives here, beside the size picker it answers — as a page

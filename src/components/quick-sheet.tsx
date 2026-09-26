@@ -8,6 +8,7 @@ import { useCatalogue } from "@/components/catalogue-provider";
 import { ProductPlate } from "@/components/product-plate";
 import { QUICK_ADD, TOAST, showToast } from "@/lib/ui-events";
 import { Swatch } from "@/components/swatch";
+import { useDialog } from "@/lib/use-dialog";
 import { formatINR } from "@/lib/money";
 
 export function QuickSheet() {
@@ -45,12 +46,13 @@ export function QuickSheet() {
   }, [toast]);
 
   const close = () => setOpenId(null);
+  const dialog = useDialog<HTMLElement>(Boolean(product), close);
 
   return (
     <>
       <div className={`scrim ${product ? "open" : ""}`} onClick={close}></div>
 
-      <aside id="qsheet" className={`ovl ${product ? "open" : ""}`} role="dialog" aria-label="Quick add">
+      <aside id="qsheet" className={`ovl ${product ? "open" : ""}`} role="dialog" aria-label="Quick add" {...dialog}>
         {product && (
           <>
             <div className="ovl-head">

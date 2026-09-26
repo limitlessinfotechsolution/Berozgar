@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCatalogueOrThrow, getCatalogueProduct } from "@/lib/catalogue";
 import { ProductDetail } from "@/components/product-detail";
+import { JsonLd } from "@/components/json-ld";
+import { SITE_URL } from "@/lib/site";
+import { breadcrumbJsonLd, productJsonLd } from "@/lib/structured-data";
 
 /* Products added in the admin after a build still resolve — they render on first request. */
 export const dynamicParams = true;
@@ -32,5 +35,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   /* Unknown, or set inactive in the admin — the public API answers 404 for both. */
   if (!product) notFound();
 
-  return <ProductDetail product={product} />;
+  return (
+    <>
+      <JsonLd data={productJsonLd(product, SITE_URL)} />
+      <JsonLd
+        data={breadcrumbJsonLd(
+          [["Home", "/"], ["Shop", "/shop"], [product.categoryName, `/collections/${product.category}`], [product.name, `/shop/${product.slug}`]],
+          SITE_URL,
+        )}
+      />
+      <ProductDetail product={product} />
+    </>
+  );
 }

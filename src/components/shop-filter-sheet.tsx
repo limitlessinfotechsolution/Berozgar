@@ -1,6 +1,7 @@
 "use client";
 
 import { ShopFilterPanel } from "@/components/shop-filter-panel";
+import { useDialog } from "@/lib/use-dialog";
 import { SORTS, type Facets, type Query } from "@/lib/shop-filters";
 
 /* Mobile-only filter/sort sheet. Shares #qsheet's styling via the .qsheet class
@@ -22,12 +23,13 @@ export function ShopFilterSheet({
   onClose: () => void;
 }) {
   const open = kind !== null;
+  const dialog = useDialog<HTMLElement>(open, onClose);
 
   return (
     <>
       <div className={`scrim ${open ? "open" : ""}`.trim()} onClick={onClose}></div>
 
-      <aside className={`ovl qsheet ${open ? "open" : ""}`.trim()} role="dialog" aria-label={kind === "sort" ? "Sort" : "Filter"}>
+      <aside className={`ovl qsheet ${open ? "open" : ""}`.trim()} role="dialog" aria-label={kind === "sort" ? "Sort" : "Filter"} {...dialog}>
         {kind === "filter" && (
           <>
             <div className="ovl-head">

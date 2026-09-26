@@ -9,6 +9,8 @@ import { QuickSheet } from "@/components/quick-sheet";
 import { StoreSettingsProvider } from "@/components/store-settings-provider";
 import { getCatalogueState } from "@/lib/catalogue";
 import { getShippingRule } from "@/lib/settings";
+import { JsonLd } from "@/components/json-ld";
+import { siteJsonLd } from "@/lib/structured-data";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -52,6 +54,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={`${archivo.variable} antialiased`} data-scroll-behavior="smooth">
       <body>
+        <JsonLd data={siteJsonLd(SITE_URL)} />
         <CatalogueProvider products={products} unavailable={unavailable}>
           <StoreSettingsProvider shipping={shipping}>
             <SessionProvider>
@@ -59,9 +62,11 @@ export default async function RootLayout({
                 {/* dvh rather than the screen utility, which compiles to 100vh — on mobile
                     that is the largest viewport and leaves a dead scroll under short pages. */}
                 <div className="brz-reset flex flex-col min-h-dvh">
+                  {/* First thing Tab reaches: past the announcement bar and the nav. */}
+                  <a href="#app" className="skip-link">Skip to content</a>
                   <div id="grain" aria-hidden="true"></div>
                   <SiteHeader />
-                  <main id="app" className="flex-1">{children}</main>
+                  <main id="app" className="flex-1" tabIndex={-1}>{children}</main>
                   <SiteFooter />
                   <QuickSheet />
                 </div>
