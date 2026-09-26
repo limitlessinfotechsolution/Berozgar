@@ -84,7 +84,7 @@ export function TrackOrderClient() {
   return (
     <div className="page-fade">
       <RevealObserver />
-      <div className="wrap" style={{ padding: "48px 0 90px", maxWidth: "760px" }}>
+      <div className="wrap" style={{ paddingTop: "48px", paddingBottom: "90px", maxWidth: "760px" }}>
         <div className="crumb">
           <Link href="/">HOME</Link> / TRACK ORDER
         </div>

@@ -16,7 +16,7 @@ export function AuthCard({
   return (
     <div className="page-fade">
       <RevealObserver />
-      <div className="wrap" style={{ padding: "48px 0 90px" }}>
+      <div className="wrap" style={{ paddingTop: "48px", paddingBottom: "90px" }}>
         <div className="crumb">
           <Link href="/">HOME</Link> / {eyebrow}
         </div>

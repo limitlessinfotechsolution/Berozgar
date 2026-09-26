@@ -15,7 +15,7 @@ export default function HelpLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="page-fade">
       <RevealObserver />
-      <div className="wrap" style={{ padding: "40px 0 90px" }}>
+      <div className="wrap" style={{ paddingTop: "40px", paddingBottom: "90px" }}>
         <div className="crumb">
           <Link href="/">HOME</Link> / HELP
         </div>

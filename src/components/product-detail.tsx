@@ -132,7 +132,11 @@ export function ProductDetail({ product }: { product: Product }) {
 
   const slide = (i: number) =>
     hasPhotos
-      ? <PhotoPlate src={product.images[i]} label={`${product.name} — image ${i + 1}`} />
+      ? <PhotoPlate
+          src={product.images[i]}
+          label={`${product.name} — image ${i + 1}`}
+          fallback={<Plate slug={product.slug} word={product.word} label={product.name} variant={i} />}
+        />
       : <Plate slug={product.slug} word={product.word} label={product.name} variant={i} />;
 
   return (

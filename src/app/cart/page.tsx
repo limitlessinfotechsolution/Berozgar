@@ -40,7 +40,7 @@ export default function CartPage() {
   return (
     <div className="page-fade">
       <RevealObserver />
-      <div className="wrap" style={{ padding: "40px 0 80px" }}>
+      <div className="wrap" style={{ paddingTop: "40px", paddingBottom: "80px" }}>
         <h1 className="h1" data-rev="true">YOUR BAG</h1>
 
         <div className="cart-lay" style={{ marginTop: "8px" }}>

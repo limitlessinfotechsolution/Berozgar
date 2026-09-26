@@ -34,7 +34,7 @@ export default async function LookDetailPage({ params }: { params: Promise<{ slu
   return (
     <div className="page-fade">
       <RevealObserver />
-      <div className="wrap" style={{ padding: "40px 0 90px" }}>
+      <div className="wrap" style={{ paddingTop: "40px", paddingBottom: "90px" }}>
         <div className="crumb">
           <Link href="/">HOME</Link> / <Link href="/lookbook">LOOKBOOK</Link> / {look.name}
         </div>

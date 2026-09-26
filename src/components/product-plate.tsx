@@ -1,5 +1,8 @@
 import type { Product } from "@/lib/products";
 import { plateFor } from "@/lib/plate";
+import { PhotoPlate } from "@/components/photo-plate";
+
+export { PhotoPlate };
 
 /*
  * Variant 0 is the resting image, variant 1 the hover/alt image.
@@ -17,13 +20,7 @@ export function ProductPlate({
   variant?: 0 | 1;
   className?: string;
 }) {
-  if (product.images.length > 0) {
-    const src = product.images[variant];
-    if (!src) return null;
-    return <PhotoPlate src={src} label={product.name} className={className} />;
-  }
-
-  return (
+  const plate = (
     <Plate
       slug={product.slug}
       word={product.word}
@@ -32,17 +29,14 @@ export function ProductPlate({
       className={className}
     />
   );
-}
 
-/* A photo in the plate box, so every layout rule written for .plate still applies. */
-export function PhotoPlate({ src, label, className = "" }: { src: string; label: string; className?: string }) {
-  return (
-    <div className={`plate pimg ${className}`.trim()}>
-      {/* Plain <img>: images come from object storage at a host set per environment. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={label} loading="lazy" decoding="async" />
-    </div>
-  );
+  if (product.images.length > 0) {
+    const src = product.images[variant];
+    if (!src) return null;
+    return <PhotoPlate src={src} label={product.name} className={className} fallback={plate} />;
+  }
+
+  return plate;
 }
 
 /* Oversized display plate used for the hero and the About band. */

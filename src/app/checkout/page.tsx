@@ -423,6 +423,11 @@ export default function CheckoutPage() {
               );
             })}
           </div>
+          {/* Phones: the four-step rail wraps to two lines, so it's one line and a bar instead. */}
+          <div className="co-steps-m" aria-hidden="true">
+            <span>STEP {step} OF {STEPS.length}: {STEPS[step - 1].replace(/^\d+\s+/, "")}</span>
+            <i><b style={{ width: `${(step / STEPS.length) * 100}%` }} /></i>
+          </div>
         </div>
       </div>
 

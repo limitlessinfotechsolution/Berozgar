@@ -20,7 +20,7 @@ export default async function CollectionsPage() {
   return (
     <div className="page-fade">
       <RevealObserver />
-      <div className="wrap" style={{ padding: "60px 0" }}>
+      <div className="wrap" style={{ paddingTop: "60px", paddingBottom: "60px" }}>
         <div className="crumb">
           <Link href="/">HOME</Link> / COLLECTIONS
         </div>
