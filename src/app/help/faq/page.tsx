@@ -1,4 +1,7 @@
 import { FaqAccordion, type FaqGroup } from "@/components/faq-accordion";
+import { formatINR } from "@/lib/money";
+import { getShippingRule } from "@/lib/settings";
+import type { ShippingRule } from "@/lib/shipping";
 
 export const metadata = {
   title: "FAQ — BEROZGAR",
@@ -6,8 +9,9 @@ export const metadata = {
 };
 
 /* Answers mirror the promises already made elsewhere on the site (PDP notes,
-   shipping band, returns copy) so the two can't drift apart. */
-const GROUPS: FaqGroup[] = [
+   shipping band, returns copy) so the two can't drift apart. Shipping charges
+   come from the ERP's Settings → Shipping, the same numbers the quote uses. */
+const groups = (rule: ShippingRule): FaqGroup[] => [
   {
     category: "ORDERS",
     items: [
@@ -27,7 +31,7 @@ const GROUPS: FaqGroup[] = [
   {
     category: "SHIPPING",
     items: [
-      ["WHAT DOES SHIPPING COST?", "Free above ₹999. Below that it's ₹99 standard. Express is ₹199 where available."],
+      ["WHAT DOES SHIPPING COST?", `Free above ${formatINR(rule.freeFromMinor)}. Below that it's ${formatINR(rule.standardMinor)} standard. Express is ${formatINR(rule.expressMinor)} where available.`],
       ["HOW LONG DOES DELIVERY TAKE?", "Standard is 3–5 working days. Express is 1–2 working days."],
       ["DO YOU SHIP OUTSIDE INDIA?", "Not yet. Drop 001 ships within India only."],
     ],
@@ -57,7 +61,8 @@ const GROUPS: FaqGroup[] = [
   },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const rule = await getShippingRule();
   return (
     <>
       <header style={{ marginBottom: "28px" }}>
@@ -65,7 +70,7 @@ export default function FaqPage() {
         <h1 className="h1" style={{ marginTop: "10px" }}>FAQ</h1>
       </header>
 
-      <FaqAccordion groups={GROUPS} />
+      <FaqAccordion groups={groups(rule)} />
     </>
   );
 }

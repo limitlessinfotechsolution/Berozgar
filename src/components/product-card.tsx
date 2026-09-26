@@ -7,6 +7,7 @@ import { ProductPlate } from "@/components/product-plate";
 import { openQuickAdd, showToast } from "@/lib/ui-events";
 import { discountPercent } from "@/lib/shop-filters";
 import { swatchFor } from "@/lib/colours";
+import { formatINR } from "@/lib/money";
 
 export function ProductCard({ product }: { product: Product }) {
   const { toggleWishlist, inWishlist } = useCart();
@@ -64,13 +65,13 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="pcard-info">
         {product.collection && <span className="cap mut" style={{ fontSize: "10px" }}>{product.collection}</span>}
         <Link className="nm" href={`/shop/${product.slug}`}>{product.name}</Link>
-        {product.compareAt ? (
+        {product.compareAtMinor ? (
           <span className="price">
-            <span className="sale-c">₹{product.price.toLocaleString("en-IN")}</span>
-            <s>₹{product.compareAt.toLocaleString("en-IN")}</s>
+            <span className="sale-c">{formatINR(product.priceMinor)}</span>
+            <s>{formatINR(product.compareAtMinor)}</s>
           </span>
         ) : (
-          <span className="price">₹{product.price.toLocaleString("en-IN")}</span>
+          <span className="price">{formatINR(product.priceMinor)}</span>
         )}
         {/* Dots when every colour is one we can draw; names otherwise, never a guess. */}
         {product.colors.every((c) => swatchFor(c)) ? (

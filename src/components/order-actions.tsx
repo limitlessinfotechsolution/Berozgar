@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { ReturnRequestModal } from "@/components/return-request-modal";
 import { inr } from "@/components/order-view";
+import { formatINR, toMinor } from "@/lib/money";
 import { RESOLUTION_COPY, RETURN_STATUS_LABEL, claimBlockedMessage } from "@/lib/returns";
 import { formatStamp, type ReturnResolution, type TrackedOrder } from "@/lib/tracking";
 import { showToast } from "@/lib/ui-events";
 
 const day = (iso: string) => formatStamp(iso).split(",")[0] ?? iso;
 /* Whole paise from the ERP's 2dp money strings, so a difference is exact. */
-const paise = (amount: string | null) => (amount ? Math.round(Number(amount) * 100) : 0);
+const paise = (amount: string | null) => toMinor(amount) ?? 0;
 
 /*
  * What a shopper can do with a real order: download the GST invoice, raise a
@@ -125,11 +126,11 @@ export function OrderActions({
               <p className="small mut" style={{ marginTop: "6px" }}>
                 Raised {day(r.createdAt)}
                 {r.status === "APPROVED" && r.pickupRequired ? " · We'll arrange a pickup at our cost." : ""}
-                {r.status === "RESOLVED" && r.refundAmount && Number(r.refundAmount) > 0
+                {r.status === "RESOLVED" && r.refundAmount && paise(r.refundAmount) > 0
                   ? ` · ${inr(r.refundAmount)} refunded to your original payment method.`
                   : ""}
                 {r.status === "RESOLVED" && r.creditAmount && paise(r.creditAmount) > paise(r.refundAmount)
-                  ? ` · ${inr(((paise(r.creditAmount) - paise(r.refundAmount)) / 100).toFixed(2))} taken off what you owe on this order.`
+                  ? ` · ${formatINR(paise(r.creditAmount) - paise(r.refundAmount))} taken off what you owe on this order.`
                   : ""}
                 {r.replacementOrderNumber ? ` · Replacement order #${r.replacementOrderNumber}.` : ""}
               </p>

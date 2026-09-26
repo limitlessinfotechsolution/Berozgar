@@ -1,16 +1,20 @@
 import Link from "next/link";
+import { formatINR } from "@/lib/money";
+import { getShippingRule } from "@/lib/settings";
 
 export const metadata = {
   title: "SHIPPING & DELIVERY — BEROZGAR",
   description: "Dispatch windows, delivery estimates and shipping charges.",
 };
 
-const RATES: [string, string, string][] = [
-  ["STANDARD", "3–5 WORKING DAYS", "FREE above ₹999, otherwise ₹99"],
-  ["EXPRESS", "1–2 WORKING DAYS", "₹199"],
-];
+export default async function ShippingHelpPage() {
+  /* Charges from the ERP's Settings → Shipping — the numbers the checkout quote uses. */
+  const rule = await getShippingRule();
+  const RATES: [string, string, string][] = [
+    ["STANDARD", "3–5 WORKING DAYS", `FREE above ${formatINR(rule.freeFromMinor)}, otherwise ${formatINR(rule.standardMinor)}`],
+    ["EXPRESS", "1–2 WORKING DAYS", `+${formatINR(rule.expressMinor)}`],
+  ];
 
-export default function ShippingHelpPage() {
   return (
     <>
       <header style={{ marginBottom: "28px" }}>

@@ -6,7 +6,9 @@ import { SessionProvider } from "@/components/session-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { QuickSheet } from "@/components/quick-sheet";
+import { StoreSettingsProvider } from "@/components/store-settings-provider";
 import { getCatalogueState } from "@/lib/catalogue";
+import { getShippingRule } from "@/lib/settings";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -45,25 +47,27 @@ export default async function RootLayout({
   /* One cached read of the ERP catalogue, shared with every client component.
      Deliberately the forgiving read: an ERP outage must not take down the legal
      pages, order tracking or the rest of the site along with the shop. */
-  const { products, unavailable } = await getCatalogueState();
+  const [{ products, unavailable }, shipping] = await Promise.all([getCatalogueState(), getShippingRule()]);
 
   return (
     <html lang="en" className={`${archivo.variable} antialiased`} data-scroll-behavior="smooth">
       <body>
         <CatalogueProvider products={products} unavailable={unavailable}>
-          <SessionProvider>
-            <CartProvider>
-              {/* dvh rather than the screen utility, which compiles to 100vh — on mobile
-                  that is the largest viewport and leaves a dead scroll under short pages. */}
-              <div className="brz-reset flex flex-col min-h-dvh">
-                <div id="grain" aria-hidden="true"></div>
-                <SiteHeader />
-                <main id="app" className="flex-1">{children}</main>
-                <SiteFooter />
-                <QuickSheet />
-              </div>
-            </CartProvider>
-          </SessionProvider>
+          <StoreSettingsProvider shipping={shipping}>
+            <SessionProvider>
+              <CartProvider>
+                {/* dvh rather than the screen utility, which compiles to 100vh — on mobile
+                    that is the largest viewport and leaves a dead scroll under short pages. */}
+                <div className="brz-reset flex flex-col min-h-dvh">
+                  <div id="grain" aria-hidden="true"></div>
+                  <SiteHeader />
+                  <main id="app" className="flex-1">{children}</main>
+                  <SiteFooter />
+                  <QuickSheet />
+                </div>
+              </CartProvider>
+            </SessionProvider>
+          </StoreSettingsProvider>
         </CatalogueProvider>
       </body>
     </html>

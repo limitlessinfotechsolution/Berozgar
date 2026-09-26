@@ -6,12 +6,13 @@ import { ProductPlate } from "@/components/product-plate";
 import { RevealObserver } from "@/components/reveal-observer";
 import { showToast } from "@/lib/ui-events";
 import { RecentlyViewed } from "@/components/recently-viewed";
-
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-const FREE_SHIPPING_AT = 999;
+import { useShippingRule } from "@/components/store-settings-provider";
+import { formatINR as inr } from "@/lib/money";
+import { standardShippingMinor } from "@/lib/shipping";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity } = useCart();
+  const rule = useShippingRule();
 
   if (items.length === 0) {
     return (
@@ -29,11 +30,12 @@ export default function CartPage() {
     );
   }
 
-  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const shipping = subtotal >= FREE_SHIPPING_AT ? 0 : 99;
-  const unlocked = subtotal >= FREE_SHIPPING_AT;
-  const remaining = Math.max(0, FREE_SHIPPING_AT - subtotal);
-  const progress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_AT) * 100));
+  /* Paise, and the ERP's own rule (Settings → Shipping), so this matches the quote. */
+  const subtotal = items.reduce((sum, item) => sum + item.product.priceMinor * item.quantity, 0);
+  const shipping = standardShippingMinor(subtotal, rule);
+  const unlocked = shipping === 0;
+  const remaining = Math.max(0, rule.freeFromMinor - subtotal);
+  const progress = rule.freeFromMinor > 0 ? Math.min(100, Math.round((subtotal / rule.freeFromMinor) * 100)) : 100;
 
   return (
     <div className="page-fade">
@@ -63,7 +65,7 @@ export default function CartPage() {
                     REMOVE
                   </button>
                 </div>
-                <b className="price">{inr(item.product.price * item.quantity)}</b>
+                <b className="price">{inr(item.product.priceMinor * item.quantity)}</b>
               </div>
             ))}
 

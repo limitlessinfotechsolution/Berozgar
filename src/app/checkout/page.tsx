@@ -11,10 +11,12 @@ import { readStored, useHydrated, writeStored } from "@/lib/use-hydrated";
 import { LAST_ORDER_KEY, rememberOrder } from "@/lib/tracking";
 import { payWithRazorpay, type RazorpayOrder } from "@/lib/razorpay";
 import { deliveryRange, PINCODE_KEY, type PincodeInfo } from "@/lib/delivery";
+import { useShippingRule } from "@/components/store-settings-provider";
+import { formatDecimalINR as inrDecimal, formatINR as inr, toMinor } from "@/lib/money";
+import { standardShippingMinor } from "@/lib/shipping";
 
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-/* ERP money is a decimal string; format it without summing floats. */
-const inrDecimal = (s: string) => `₹${Number(s).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+/* ERP money is a decimal string; it is compared and subtracted as paise, never floats. */
+const minor = (s: string | null | undefined) => toMinor(s) ?? 0;
 
 const STEPS = ["01 INFORMATION", "02 DELIVERY", "03 PAYMENT", "04 REVIEW"];
 
@@ -67,6 +69,7 @@ type Quote = {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, clear } = useCart();
+  const shippingRule = useShippingRule();
   const { user } = useSession();
 
   const [step, setStep] = useState(1);
@@ -309,15 +312,17 @@ export default function CheckoutPage() {
     );
   }
 
-  /* Pre-GST estimate for the sidebar until the ERP quote arrives. */
-  const subtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  const shipping = (subtotal >= 999 ? 0 : 99) + (express ? 199 : 0);
+  /* Pre-GST estimate for the sidebar until the ERP quote arrives — paise, and the
+     ERP's own shipping rule (Settings → Shipping), so it can't disagree with the quote. */
+  const subtotal = items.reduce((sum, i) => sum + i.product.priceMinor * i.quantity, 0);
+  const standardShipping = standardShippingMinor(subtotal, shippingRule);
+  const shipping = standardShipping + (express ? shippingRule.expressMinor : 0);
   const priced = typeof quote === "object" && quote?.totals ? quote : null;
   const blocked = typeof quote === "object" && quote !== null && quote.lines.length > 0;
   const appliedCoupon = priced?.coupon ?? null;
   const couponProblem = couponCode && priced && !priced.coupon ? (priced.couponError?.message ?? "That code isn't valid.") : null;
-  const couponOff = Number(priced?.totals?.couponDiscount ?? 0);
-  const prepaidOff = Math.max(0, Number(priced?.totals?.discount ?? 0) - couponOff);
+  const couponOff = minor(priced?.totals?.couponDiscount);
+  const prepaidOff = Math.max(0, minor(priced?.totals?.discount) - couponOff);
 
   /*
    * Goes through /api/checkout, a server-side proxy to the ERP.
@@ -517,14 +522,14 @@ export default function CheckoutPage() {
                       {pinWindow ? `BY ${deliveryRange(pinWindow)}` : "3–5 WORKING DAYS"}
                     </small>
                   </div>
-                  <b className="price">{subtotal >= 999 ? "FREE" : inr(99)}</b>
+                  <b className="price">{standardShipping === 0 ? "FREE" : inr(standardShipping)}</b>
                 </div>
                 <div className={`del-opt ${express ? "on" : ""}`.trim()} role="button" tabIndex={0} onClick={() => setExpress(true)}>
                   <div>
                     <b className="small" style={{ letterSpacing: "0.1em" }}>EXPRESS</b>
                     <small className="small mut" style={{ display: "block" }}>1–2 WORKING DAYS</small>
                   </div>
-                  <b className="price">+{inr(199)}</b>
+                  <b className="price">+{inr(shippingRule.expressMinor)}</b>
                 </div>
 
                 <div style={{ display: "grid", gap: "10px", marginTop: "22px" }}>
@@ -557,7 +562,7 @@ export default function CheckoutPage() {
                     <small>
                       {off
                         ? codRule?.reason
-                        : value === "cod" && codRule && Number(codRule.fee) > 0
+                        : value === "cod" && codRule && minor(codRule.fee) > 0
                           ? `${hint} · ${inrDecimal(codRule.fee)} COD fee`
                           : hint}
                     </small>
@@ -615,7 +620,7 @@ export default function CheckoutPage() {
                         </b>
                       )}
                     </span>
-                    <span className="num small">{inr(item.product.price * item.quantity)}</span>
+                    <span className="num small">{inr(item.product.priceMinor * item.quantity)}</span>
                   </div>
                 );
               })}
@@ -688,7 +693,7 @@ export default function CheckoutPage() {
                 {item.product.name}<br />
                 <span className="mut">{item.size} / {item.colour} × {item.quantity}</span>
               </span>
-              <span className="num small">{inr(item.product.price * item.quantity)}</span>
+              <span className="num small">{inr(item.product.priceMinor * item.quantity)}</span>
             </div>
           ))}
           <hr className="hr" style={{ margin: "10px 0" }} />
@@ -700,7 +705,7 @@ export default function CheckoutPage() {
               </div>
               <div className="sumrow">
                 <span>Shipping</span>
-                <span className="num">{Number(priced.totals!.shipping) ? inrDecimal(priced.totals!.shipping) : "FREE"}</span>
+                <span className="num">{minor(priced.totals!.shipping) ? inrDecimal(priced.totals!.shipping) : "FREE"}</span>
               </div>
               {appliedCoupon && couponOff > 0 && (
                 <div className="sumrow">
@@ -711,10 +716,10 @@ export default function CheckoutPage() {
               {prepaidOff > 0 && (
                 <div className="sumrow">
                   <span>Prepaid discount</span>
-                  <span className="num">−{inrDecimal(prepaidOff.toFixed(2))}</span>
+                  <span className="num">−{inr(prepaidOff)}</span>
                 </div>
               )}
-              {Number(priced.totals!.codFee) > 0 && (
+              {minor(priced.totals!.codFee) > 0 && (
                 <div className="sumrow">
                   <span>COD fee</span>
                   <span className="num">{inrDecimal(priced.totals!.codFee)}</span>

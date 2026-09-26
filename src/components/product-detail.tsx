@@ -16,13 +16,14 @@ import { requestStockAlert } from "@/lib/audience";
 import { PincodeCheck } from "@/components/pincode-check";
 import { RecentlyViewed } from "@/components/recently-viewed";
 import { ProductReviews } from "@/components/product-reviews";
-
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+import { useShippingRule } from "@/components/store-settings-provider";
+import { formatINR as inr } from "@/lib/money";
 
 export function ProductDetail({ product }: { product: Product }) {
   const router = useRouter();
   const { addItem } = useCart();
   const { products } = useCatalogue();
+  const freeFrom = inr(useShippingRule().freeFromMinor);
 
   const [size, setSize] = useState<string | null>(null);
   /* Start on a colour that can actually be bought. */
@@ -115,7 +116,7 @@ export function ProductDetail({ product }: { product: Product }) {
         <li>Iron inside out</li>
       </ul>
     )],
-    ["SHIPPING", <p key="s">Dispatched in 24h. Standard delivery 3–5 working days. FREE above ₹999. Express available at checkout.</p>],
+    ["SHIPPING", <p key="s">Dispatched in 24h. Standard delivery 3–5 working days. FREE above {freeFrom}. Express available at checkout.</p>],
     /* Matches the Return, Replacement & Refund Policy: printed items are made to
        order, so claims cover damaged, defective or wrong items — not a change of
        mind or a size the customer chose. The window is an ERP setting, so it is
@@ -154,7 +155,7 @@ export function ProductDetail({ product }: { product: Product }) {
             <div className="pg-main" id="pg-main">
               {slide(Math.min(gallery, slides - 1))}
               {product.soldout ? <span className="badge sold">SOLD OUT</span>
-                : product.compareAt ? <span className="badge sale">SALE</span>
+                : product.compareAtMinor ? <span className="badge sale">SALE</span>
                 : product.badges[0] ? <span className="badge">{product.badges[0]}</span>
                 : null}
               {product.stock ? (
@@ -185,7 +186,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
             {/* One badge only: a full-bleed image has no room to stack them. */}
             {product.soldout ? <span className="badge sold">SOLD OUT</span>
-              : product.compareAt ? <span className="badge sale">SALE</span>
+              : product.compareAtMinor ? <span className="badge sale">SALE</span>
               : product.badges[0] ? <span className="badge">{product.badges[0]}</span>
               : null}
 
@@ -218,13 +219,13 @@ export function ProductDetail({ product }: { product: Product }) {
             <p className="eyebrow mut">{product.categoryName}</p>
             <h1 className="h1">{product.name}</h1>
 
-            {product.compareAt ? (
+            {product.compareAtMinor ? (
               <span className="price" style={{ fontSize: "22px" }}>
-                <span className="sale-c">{inr(product.price)}</span>
-                <s>{inr(product.compareAt)}</s>
+                <span className="sale-c">{inr(product.priceMinor)}</span>
+                <s>{inr(product.compareAtMinor)}</s>
               </span>
             ) : (
-              <span className="price" style={{ fontSize: "22px" }}>{inr(product.price)}</span>
+              <span className="price" style={{ fontSize: "22px" }}>{inr(product.priceMinor)}</span>
             )}
             <p className="small mut" style={{ marginTop: "4px" }}>+ GST, calculated at checkout</p>
             {product.soldout && <p className="cap" style={{ color: "#999", marginTop: "8px" }}>SOLD OUT</p>}
@@ -308,7 +309,7 @@ export function ProductDetail({ product }: { product: Product }) {
               )}
             </div>
 
-            <p className="pdp-note">Dispatch in 24h · Free shipping above ₹999 · Free remake if it arrives damaged or wrong</p>
+            <p className="pdp-note">Dispatch in 24h · Free shipping above {freeFrom} · Free remake if it arrives damaged or wrong</p>
 
             <PincodeCheck />
 
@@ -365,7 +366,7 @@ export function ProductDetail({ product }: { product: Product }) {
         <div>
           <span className="cap mut">{size ? `${product.name} / ${size}${color ? ` / ${color}` : ""}` : "SIZE REQUIRED"}</span>
           <br />
-          <b className="price">{inr(product.price)}</b>
+          <b className="price">{inr(product.priceMinor)}</b>
         </div>
         <button className="btn" onClick={() => addToBag(true)} aria-label="Add to bag">ADD TO BAG</button>
       </div>

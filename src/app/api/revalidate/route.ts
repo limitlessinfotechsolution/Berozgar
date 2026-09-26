@@ -10,7 +10,7 @@ import { revalidateTag } from "next/cache";
  * Only known tags are accepted, and only with the shared secret
  * (REVALIDATE_SECRET here, STOREFRONT_REVALIDATE_SECRET in the ERP).
  */
-const ALLOWED_TAGS = new Set(["catalogue", "orders", "legal", "reviews"]);
+const ALLOWED_TAGS = new Set(["catalogue", "orders", "legal", "reviews", "settings"]);
 
 function secretMatches(given: string | null): boolean {
   const expected = process.env.REVALIDATE_SECRET;

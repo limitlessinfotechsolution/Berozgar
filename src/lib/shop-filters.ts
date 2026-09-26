@@ -24,12 +24,13 @@ export const SORTS: [string, string][] = [
   ["price-desc", "PRICE: HIGH → LOW"],
 ];
 
+/* Whole rupees: the cap is the ?max= value, which stays readable in a shared URL. */
 const PRICE_CAPS = [999, 1500, 2500];
 
 /* Whole-percent saving, for the card badge. Null when there is no real discount. */
-export function discountPercent(p: Pick<Product, "price" | "compareAt">): number | null {
-  if (!p.compareAt || p.compareAt <= p.price) return null;
-  const pct = Math.round((1 - p.price / p.compareAt) * 100);
+export function discountPercent(p: Pick<Product, "priceMinor" | "compareAtMinor">): number | null {
+  if (!p.compareAtMinor || p.compareAtMinor <= p.priceMinor) return null;
+  const pct = Math.round((1 - p.priceMinor / p.compareAtMinor) * 100);
   return pct > 0 ? pct : null;
 }
 
@@ -44,7 +45,7 @@ export type Facets = {
 
 export function facetsOf(all: Product[]): Facets {
   const distinct = (values: string[]) => [...new Set(values.filter(Boolean))].sort();
-  const prices = all.map((p) => p.price);
+  const prices = all.map((p) => p.priceMinor);
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   return {
@@ -54,7 +55,7 @@ export function facetsOf(all: Product[]): Facets {
     collections: distinct(all.map((p) => p.collection)),
     // Only caps that actually split the catalogue: one that includes everything,
     // or nothing, filters nothing.
-    priceCaps: PRICE_CAPS.filter((cap) => cap >= min && cap < max).map((cap): [string, string] => [
+    priceCaps: PRICE_CAPS.filter((cap) => cap * 100 >= min && cap * 100 < max).map((cap): [string, string] => [
       String(cap),
       `UNDER ₹${cap.toLocaleString("en-IN")}`,
     ]),
@@ -74,11 +75,11 @@ export function applyFilters(all: Product[], q: Query): Product[] {
   if (q.fit) list = list.filter((p) => p.fit === q.fit.toUpperCase());
   if (q.collection) list = list.filter((p) => p.collection === q.collection.toUpperCase());
   if (q.avail === "instock") list = list.filter((p) => !p.soldout);
-  if (q.max) list = list.filter((p) => p.price <= Number(q.max));
+  if (q.max) list = list.filter((p) => p.priceMinor <= Number(q.max) * 100);
 
   const sort = q.sort || "featured";
-  if (sort === "price-asc") list.sort((a, b) => a.price - b.price);
-  else if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
+  if (sort === "price-asc") list.sort((a, b) => a.priceMinor - b.priceMinor);
+  else if (sort === "price-desc") list.sort((a, b) => b.priceMinor - a.priceMinor);
   else if (sort === "newest") list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   // "featured" keeps the ERP's order, but sold-out products sink to the end.
   else list.sort((a, b) => Number(a.soldout) - Number(b.soldout));

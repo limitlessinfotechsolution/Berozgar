@@ -8,6 +8,8 @@ import { useSession } from "@/components/session-provider";
 import { useCatalogue } from "@/components/catalogue-provider";
 import { searchProducts, idleSuggestions, resultCategories, trendingTerms } from "@/lib/search";
 import { ProductPlate } from "@/components/product-plate";
+import { useShippingRule } from "@/components/store-settings-provider";
+import { formatINR } from "@/lib/money";
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -18,7 +20,8 @@ export function SiteHeader() {
   const { isAuthenticated, logout } = useSession();
   const { products, categories: catalogueCategories } = useCatalogue();
   const router = useRouter();
-  const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const shippingRule = useShippingRule();
+  const subtotal = items.reduce((sum, item) => sum + (item.product.priceMinor * item.quantity), 0);
   
   useEffect(() => {
     if (mobileOpen || cartOpen || searchOpen) {
@@ -53,7 +56,7 @@ export function SiteHeader() {
   return (
     <>
       <div id="ann">
-        <span>FREE SHIPPING ABOVE ₹999</span>
+        <span>FREE SHIPPING ABOVE {formatINR(shippingRule.freeFromMinor)}</span>
       </div>
 
       <header id="hdr">
@@ -112,7 +115,7 @@ export function SiteHeader() {
             <Link className="mg" href="/shop?sort=newest">NEW ARRIVALS</Link>
             <Link className="mg" href="/shop?sort=best">BEST SELLERS</Link>
             <Link className="mg" href="/collections/drop-001">DROP 001</Link>
-            {products.some((p) => p.compareAt) && <Link className="mg" href="/shop?cat=sale">SALE</Link>}
+            {products.some((p) => p.compareAtMinor) && <Link className="mg" href="/shop?cat=sale">SALE</Link>}
           </div>
           <Link href="/collections/drop-001" className="mega-plate" aria-label="Shop Drop 001">
             {/* pt-a because globals.css carries a .t2.pt-a rule built for exactly this
@@ -192,7 +195,7 @@ export function SiteHeader() {
                       <button onClick={() => removeItem(item.variantId)} className="rm" style={{ alignSelf: "flex-start", marginTop: "auto" }}>REMOVE</button>
                     </div>
                     <div style={{ padding: "4px 0", fontWeight: 700, fontSize: "14px" }}>
-                      ₹{(item.product.price * item.quantity).toLocaleString("en-IN")}
+                      {formatINR(item.product.priceMinor * item.quantity)}
                     </div>
                   </div>
                 ))}
@@ -200,7 +203,7 @@ export function SiteHeader() {
               <div style={{ paddingTop: '24px', paddingBottom: '24px', borderTop: '1px solid var(--gy)', marginTop: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontWeight: 800 }}>
                   <span>SUBTOTAL</span>
-                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                  <span>{formatINR(subtotal)}</span>
                 </div>
                 <p className="small mut" style={{ marginTop: "-8px", marginBottom: "16px" }}>+ GST and shipping at checkout</p>
                 <Link href="/checkout" className="btn btn-bk btn-full" onClick={closeAll}>CHECKOUT</Link>
@@ -293,7 +296,7 @@ export function SiteHeader() {
                     <span>
                       <b>{product.name}</b>
                       <br />
-                      <span className="price small">₹{product.price.toLocaleString("en-IN")}</span>
+                      <span className="price small">{formatINR(product.priceMinor)}</span>
                     </span>
                   </Link>
                 ))}

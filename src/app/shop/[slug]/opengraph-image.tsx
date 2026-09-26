@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getCatalogueOrThrow, getCatalogueProduct } from "@/lib/catalogue";
+import { formatINR } from "@/lib/money";
 import { plateFor } from "@/lib/plate";
 
 export const size = { width: 1200, height: 630 };
@@ -52,7 +53,7 @@ export default async function ProductOgImage({ params }: { params: Promise<{ slu
         </div>
         {product && (
           <div style={{ display: "flex", fontSize: 40, fontWeight: 800, marginTop: 22 }}>
-            ₹{product.price.toLocaleString("en-IN")}
+            {formatINR(product.priceMinor)}
           </div>
         )}
         <div style={{ display: "flex", fontSize: 24, letterSpacing: 8, opacity: 0.55, marginTop: 26 }}>

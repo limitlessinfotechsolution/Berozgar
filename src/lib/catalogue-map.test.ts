@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoriesOf, displayPrice, toProduct, type ErpProduct } from "@/lib/catalogue-map";
+import { categoriesOf, toProduct, type ErpProduct } from "@/lib/catalogue-map";
 import { sizeAvailable } from "@/lib/products";
 
 const erp = (overrides: Partial<ErpProduct> = {}): ErpProduct => ({
@@ -23,7 +23,7 @@ const erp = (overrides: Partial<ErpProduct> = {}): ErpProduct => ({
 describe("toProduct", () => {
   it("maps identity, price and category", () => {
     const p = toProduct(erp());
-    expect(p).toMatchObject({ id: "p1", slug: "bz-ts-classic", name: "CLASSIC T-SHIRT", price: 399 });
+    expect(p).toMatchObject({ id: "p1", slug: "bz-ts-classic", name: "CLASSIC T-SHIRT", priceMinor: 39900 });
     expect(p.category).toBe("t-shirts");
     expect(p.categoryName).toBe("T-SHIRTS");
   });
@@ -51,7 +51,7 @@ describe("toProduct", () => {
 
   it("does not invent merchandising the ERP doesn't hold", () => {
     const p = toProduct(erp());
-    expect(p).toMatchObject({ compareAt: null, badges: [], gsm: "", fabric: "", fit: "" });
+    expect(p).toMatchObject({ compareAtMinor: null, badges: [], gsm: "", fabric: "", fit: "" });
     /* Ratings and reviews aren't mapped to empties any more — the fields are gone
        from Product entirely, so a reviews UI can't silently render against zeros. */
     expect(p).not.toHaveProperty("rating");
@@ -63,7 +63,7 @@ describe("toProduct", () => {
       erp({ compareAtPrice: "599.00", fit: "oversized", collection: "Drop 001", badge: "new", createdAt: "2026-09-20T00:00:00Z" })
     );
     expect(p).toMatchObject({
-      compareAt: 599,
+      compareAtMinor: 59900,
       fit: "OVERSIZED",
       collection: "DROP 001",
       badges: ["NEW"],
@@ -77,11 +77,10 @@ describe("toProduct", () => {
   });
 });
 
-describe("displayPrice", () => {
-  it("parses decimal strings and rounds for display", () => {
-    expect(displayPrice("599.00")).toBe(599);
-    expect(displayPrice("599.50")).toBe(600);
-    expect(displayPrice("nonsense")).toBe(0);
+describe("prices", () => {
+  it("keeps paise instead of rounding to rupees", () => {
+    expect(toProduct(erp({ basePrice: "599.50" })).priceMinor).toBe(59950);
+    expect(toProduct(erp({ basePrice: "nonsense" })).priceMinor).toBe(0);
   });
 });
 

@@ -1,3 +1,4 @@
+import { toMinor } from "@/lib/money";
 import { slugify, sortSizes, type Product } from "@/lib/products";
 
 /*
@@ -33,15 +34,6 @@ export type ErpCategory = { id: string; name: string; productCount: number };
 /* "ONLY N LEFT" is shown at or below this many units across all variants. */
 export const LOW_STOCK_AT = 10;
 
-/*
- * Rupees for display. The ERP's decimal string is parsed once here; totals are
- * never summed from these — checkout asks the ERP for a quote.
- */
-export function displayPrice(decimal: string): number {
-  const value = Number.parseFloat(decimal);
-  return Number.isFinite(value) ? Math.round(value) : 0;
-}
-
 export function toProduct(p: ErpProduct): Product {
   const variants = p.variants.map((v) => ({ ...v, size: v.size.toUpperCase(), colour: v.colour.toUpperCase() }));
   const sizes = sortSizes([...new Set(variants.map((v) => v.size))]);
@@ -58,8 +50,8 @@ export function toProduct(p: ErpProduct): Product {
     slug: p.slug,
     name,
     word: (name.split(/\s+/)[0] ?? "BRZ").slice(0, 10),
-    price: displayPrice(p.basePrice),
-    compareAt: p.compareAtPrice ? displayPrice(p.compareAtPrice) : null,
+    priceMinor: toMinor(p.basePrice) ?? 0,
+    compareAtMinor: toMinor(p.compareAtPrice),
     category: slugify(categoryName),
     categoryName,
     colors,

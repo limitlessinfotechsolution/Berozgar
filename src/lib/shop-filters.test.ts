@@ -7,8 +7,8 @@ const product = (over: Partial<Product>): Product => ({
   slug: "p",
   name: "P",
   word: "P",
-  price: 999,
-  compareAt: null,
+  priceMinor: 99900,
+  compareAtMinor: null,
   category: "t-shirts",
   categoryName: "T-SHIRTS",
   colors: ["BLACK"],
@@ -28,16 +28,16 @@ const product = (over: Partial<Product>): Product => ({
   ...over,
 });
 
-const a = product({ slug: "a", price: 799, compareAt: 1199, fit: "OVERSIZED", createdAt: "2026-09-10T00:00:00Z" });
-const b = product({ slug: "b", price: 1499, collection: "DROP 001", colors: ["WHITE"], createdAt: "2026-09-20T00:00:00Z" });
-const c = product({ slug: "c", price: 2999, soldout: true, category: "hoodies" });
+const a = product({ slug: "a", priceMinor: 79900, compareAtMinor: 119900, fit: "OVERSIZED", createdAt: "2026-09-10T00:00:00Z" });
+const b = product({ slug: "b", priceMinor: 149900, collection: "DROP 001", colors: ["WHITE"], createdAt: "2026-09-20T00:00:00Z" });
+const c = product({ slug: "c", priceMinor: 299900, soldout: true, category: "hoodies" });
 const all = [c, a, b];
 
 describe("discountPercent", () => {
   it("rounds the saving and ignores fake discounts", () => {
-    expect(discountPercent({ price: 799, compareAt: 1199 })).toBe(33);
-    expect(discountPercent({ price: 999, compareAt: 999 })).toBeNull();
-    expect(discountPercent({ price: 999, compareAt: null })).toBeNull();
+    expect(discountPercent({ priceMinor: 79900, compareAtMinor: 119900 })).toBe(33);
+    expect(discountPercent({ priceMinor: 99900, compareAtMinor: 99900 })).toBeNull();
+    expect(discountPercent({ priceMinor: 99900, compareAtMinor: null })).toBeNull();
   });
 });
 

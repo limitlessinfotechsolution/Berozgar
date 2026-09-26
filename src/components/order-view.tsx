@@ -10,8 +10,9 @@ import {
   trackStep,
   type TrackedOrder,
 } from "@/lib/tracking";
+import { formatDecimalINR } from "@/lib/money";
 
-export const inr = (s: string) => `₹${Number(s).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+export const inr = formatDecimalINR;
 
 /*
  * A real ERP order as the shopper sees it: the six-step timeline, the courier

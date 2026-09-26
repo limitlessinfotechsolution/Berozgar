@@ -17,9 +17,9 @@ export type Product = {
   slug: string;
   name: string;
   word: string;
-  /* Display only (whole rupees, pre-GST). Totals always come from the ERP quote. */
-  price: number;
-  compareAt: number | null;
+  /* Integer paise, pre-GST (src/lib/money.ts). Totals always come from the ERP quote. */
+  priceMinor: number;
+  compareAtMinor: number | null;
   /* Category slug, e.g. "t-shirts"; categoryName is the label. */
   category: string;
   categoryName: string;

@@ -24,8 +24,8 @@ export function SearchClient() {
   const trending = trendingTerms(products);
 
   const results = [...matches];
-  if (sort === "price-asc") results.sort((a, b) => a.price - b.price);
-  if (sort === "price-desc") results.sort((a, b) => b.price - a.price);
+  if (sort === "price-asc") results.sort((a, b) => a.priceMinor - b.priceMinor);
+  if (sort === "price-desc") results.sort((a, b) => b.priceMinor - a.priceMinor);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

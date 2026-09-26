@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { readStored, useHydrated } from "@/lib/use-hydrated";
 import { RevealObserver } from "@/components/reveal-observer";
 import { LAST_ORDER_KEY, paymentState, type PaymentState, type TrackedOrder } from "@/lib/tracking";
+import { formatDecimalINR as inr, toMinor } from "@/lib/money";
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
@@ -13,8 +14,6 @@ function getEta() {
   const date = new Date(Date.now() + 432e6);
   return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
 }
-
-const inr = (s: string) => `₹${Number(s).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
 /* Until the ERP answers, the query string says how checkout ended. */
 function stateFromQuery(pay: string | null): PaymentState {
@@ -100,7 +99,7 @@ export function OrderSuccess() {
                 </div>
                 <div className="sumrow">
                   <span>Shipping</span>
-                  <span className="num">{Number(order.totals.shipping) ? inr(order.totals.shipping) : "FREE"}</span>
+                  <span className="num">{toMinor(order.totals.shipping) ? inr(order.totals.shipping) : "FREE"}</span>
                 </div>
                 <div className="sumrow">
                   <span>GST</span>

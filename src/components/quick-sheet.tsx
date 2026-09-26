@@ -8,6 +8,7 @@ import { useCatalogue } from "@/components/catalogue-provider";
 import { ProductPlate } from "@/components/product-plate";
 import { QUICK_ADD, TOAST, showToast } from "@/lib/ui-events";
 import { Swatch } from "@/components/swatch";
+import { formatINR } from "@/lib/money";
 
 export function QuickSheet() {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -61,13 +62,13 @@ export function QuickSheet() {
                 <ProductPlate product={product} variant={0} />
               </div>
               <div>
-                {product.compareAt ? (
+                {product.compareAtMinor ? (
                   <span className="price">
-                    <span className="sale-c">₹{product.price.toLocaleString("en-IN")}</span>
-                    <s>₹{product.compareAt.toLocaleString("en-IN")}</s>
+                    <span className="sale-c">{formatINR(product.priceMinor)}</span>
+                    <s>{formatINR(product.compareAtMinor)}</s>
                   </span>
                 ) : (
-                  <span className="price">₹{product.price.toLocaleString("en-IN")}</span>
+                  <span className="price">{formatINR(product.priceMinor)}</span>
                 )}
 
                 {product.colors.length > 1 && (
