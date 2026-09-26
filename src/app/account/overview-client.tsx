@@ -23,7 +23,7 @@ export function AccountOverview() {
       <div className="stat-cards" data-rev="true">
         <Link className="stat" href="/account/orders">
           <span>ORDERS</span>
-          <b style={{ fontSize: "15px", letterSpacing: "0.06em" }}>VIEW →</b>
+          <b style={{ fontSize: "15px", letterSpacing: "0.06em" }}>VIEW</b>
         </Link>
         <Link className="stat" href="/account/wishlist">
           <span>WISHLIST</span>
@@ -31,11 +31,11 @@ export function AccountOverview() {
         </Link>
         <Link className="stat" href="/account/addresses">
           <span>ADDRESSES</span>
-          <b style={{ fontSize: "15px", letterSpacing: "0.06em" }}>MANAGE →</b>
+          <b style={{ fontSize: "15px", letterSpacing: "0.06em" }}>MANAGE</b>
         </Link>
         <Link className="stat" href="/track-order">
           <span>TRACK</span>
-          <b style={{ fontSize: "15px", letterSpacing: "0.06em" }}>ORDER →</b>
+          <b style={{ fontSize: "15px", letterSpacing: "0.06em" }}>ORDER</b>
         </Link>
       </div>
     </>

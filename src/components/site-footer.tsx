@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { useCatalogue } from "@/components/catalogue-provider";
 import { useSession } from "@/components/session-provider";
 import { isFocusRoute } from "@/lib/focus";
 
@@ -11,9 +13,29 @@ const SOCIALS: [string, string][] = [
   ["TIKTOK", "https://tiktok.com/"],
 ];
 
+/*
+ * A link column. On phones the heading is a toggle and the links fold away —
+ * four open columns made the footer about 1,000px of links. Desktop shows them all.
+ */
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const id = `f-${title.toLowerCase()}`;
+  return (
+    <div className={`f-col ${open ? "open" : ""}`.trim()}>
+      <h5>
+        <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>
+          {title}
+        </button>
+      </h5>
+      <div id={id} className="f-links">{children}</div>
+    </div>
+  );
+}
+
 export function SiteFooter() {
   const pathname = usePathname();
   const { isAuthenticated } = useSession();
+  const { products } = useCatalogue();
 
   if (isFocusRoute(pathname)) return null;
 
@@ -28,32 +50,28 @@ export function SiteFooter() {
                 Unemployed For A Reason.<br />Premium Indian streetwear. Drop culture, no noise.
               </p>
             </div>
-            <div>
-              <h5>SHOP</h5>
+            <FooterCol title="SHOP">
               <Link href="/shop">All Products</Link>
               <Link href="/shop?sort=newest">New Arrivals</Link>
-              <Link href="/shop?sort=best">Best Sellers</Link>
               <Link href="/collections">Collections</Link>
-              <Link href="/shop?cat=sale">Sale</Link>
-            </div>
-            <div>
-              <h5>BEROZGAR</h5>
+              {/* Like the header: no Sale link when nothing is on sale. */}
+              {products.some((p) => p.compareAtMinor) && <Link href="/shop?cat=sale">Sale</Link>}
+            </FooterCol>
+            <FooterCol title="BEROZGAR">
               <Link href="/about">About</Link>
               <Link href="/manifesto">Manifesto</Link>
               <Link href="/lookbook">Lookbook</Link>
               <Link href="/journal">Journal</Link>
               <Link href="/collaborations">Collaborations</Link>
-            </div>
-            <div>
-              <h5>HELP</h5>
+            </FooterCol>
+            <FooterCol title="HELP">
               <Link href="/help/contact">Contact</Link>
               <Link href="/help/faq">FAQ</Link>
               <Link href="/help/shipping">Shipping</Link>
               <Link href="/help/returns">Returns</Link>
               <Link href="/track-order">Track Order</Link>
-            </div>
-            <div>
-              <h5>LEGAL</h5>
+            </FooterCol>
+            <FooterCol title="LEGAL">
               <Link href="/legal/terms">Terms</Link>
               <Link href="/legal/privacy">Privacy</Link>
               <Link href="/legal/refund">Return &amp; Refund</Link>
@@ -64,7 +82,7 @@ export function SiteFooter() {
               <Link href="/legal/cookies">Cookies</Link>
               <Link href="/legal/disclaimer">Disclaimer</Link>
               <Link href="/legal/grievance">Grievances</Link>
-            </div>
+            </FooterCol>
           </div>
           <div className="f-bottom">
             <small>© {new Date().getFullYear()} BEROZGAR — UNEMPLOYED FOR A REASON.</small>

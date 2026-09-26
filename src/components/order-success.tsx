@@ -125,7 +125,7 @@ export function OrderSuccess() {
               className="tlink small"
               style={{ marginTop: "22px", display: "inline-block" }}
             >
-              NEED HELP WITH THIS ORDER? →
+              NEED HELP WITH THIS ORDER?
             </Link>
           </div>
         </div>

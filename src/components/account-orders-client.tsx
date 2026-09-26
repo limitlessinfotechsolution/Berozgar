@@ -75,7 +75,7 @@ export function AccountOrdersClient() {
             <b>{order.status.replace(/_/g, " ")}</b>
             {order.openClaims > 0 ? " · CLAIM OPEN" : ""} · {inr(order.grandTotal)}
           </span>
-          <b className="small">VIEW →</b>
+          <b className="small">VIEW</b>
         </Link>
       ))}
       {cursor && (

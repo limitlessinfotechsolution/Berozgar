@@ -82,7 +82,7 @@ export function AccountOrderClient({ orderNumber }: { orderNumber: string }) {
             className="tlink small"
             style={{ marginTop: "14px", display: "inline-block" }}
           >
-            NEED HELP WITH THIS ORDER? →
+            NEED HELP WITH THIS ORDER?
           </Link>
         </>
       )}

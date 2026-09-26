@@ -106,7 +106,7 @@ export function OrderActions({
             (order.returns.deadline
               ? `Damaged, defective or wrong item? Raise a claim by ${day(order.returns.deadline)}.`
               : "Damaged, defective or wrong item? Raise a claim with photos.")}{" "}
-          <Link href="/legal/refund" className="tlink">RETURNS POLICY →</Link>
+          <Link href="/legal/refund" className="tlink">RETURNS POLICY</Link>
         </p>
       )}
 

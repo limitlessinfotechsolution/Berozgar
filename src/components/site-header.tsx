@@ -130,7 +130,7 @@ export function SiteHeader() {
               <span className="pl-tag">UNEMPLOYED</span>
               <span className="pl-vert">BEROZGAR</span>
             </div>
-            <span className="pl-tag" style={{ zIndex: 2 }}>SHOP DROP 001 →</span>
+            <span className="pl-tag" style={{ zIndex: 2 }}>SHOP DROP 001</span>
           </Link>
         </div>
       </div>
@@ -290,7 +290,7 @@ export function SiteHeader() {
                       href={`/search?q=${encodeURIComponent(query)}`}
                       onClick={closeAll}
                     >
-                      ALL RESULTS →
+                      ALL RESULTS
                     </Link>
                   )}
                 </div>

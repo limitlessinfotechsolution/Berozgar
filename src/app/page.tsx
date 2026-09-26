@@ -68,7 +68,7 @@ export default function Home() {
               </h1>
               <div className="hero-cta">
                 <Link href="/collections/drop-001" className="btn btn-w">SHOP THE DROP</Link>
-                <Link href="/manifesto" className="tlink tlink-w">READ THE MANIFESTO →</Link>
+                <Link href="/manifesto" className="tlink tlink-w">READ THE MANIFESTO</Link>
               </div>
             </div>
             <span className="hero-side only-d">EST. MUMBAI — UNEMPLOYED FOR A REASON</span>
@@ -99,7 +99,7 @@ export default function Home() {
                   <p className="eyebrow mut">NEW DROP</p>
                   <h2 className="h1" style={{ marginTop: "8px" }}>DROP 001<br />THE FIRST STATEMENT.</h2>
                 </div>
-                <Link href="/collections/drop-001" className="tlink">VIEW COLLECTION →</Link>
+                <Link href="/collections/drop-001" className="tlink">VIEW COLLECTION</Link>
               </div>
               <div className="grid4 drop-grid">
                 {featured.map(product => <ProductCard key={product.id} product={product} />)}
@@ -114,7 +114,7 @@ export default function Home() {
             <div className="wrap editorial-in" data-rev="true">
               <p className="eyebrow" style={{ opacity: 0.6 }}>THE NEW BEROZGAR CAMPAIGN</p>
               <h2 className="d-lg" style={{ margin: "12px 0 24px" }}>WEAR YOUR<br />REASON.</h2>
-              <Link href="/manifesto" className="tlink tlink-w">EXPLORE →</Link>
+              <Link href="/manifesto" className="tlink tlink-w">EXPLORE</Link>
             </div>
           </section>
 
@@ -124,7 +124,7 @@ export default function Home() {
             <div className="wrap">
               <div className="sec-t" data-rev="true">
                 <h2 className="h2">MORE TO SHOP</h2>
-                <Link href="/shop" className="tlink">SHOP ALL →</Link>
+                <Link href="/shop" className="tlink">SHOP ALL</Link>
               </div>
               <div className="car-wrap">
                 {moreScrolls && (
@@ -162,7 +162,7 @@ export default function Home() {
               <p className="manif-line">THE WORLD ASKED US TO GET A JOB.</p>
               <p className="manif-line" style={{ marginTop: "8px" }}>WE BUILT <em>A BRAND</em> INSTEAD.</p>
               <div data-rev="true" style={{ marginTop: "40px" }}>
-                <Link href="/manifesto" className="tlink tlink-w">READ THE MANIFESTO →</Link>
+                <Link href="/manifesto" className="tlink tlink-w">READ THE MANIFESTO</Link>
               </div>
             </div>
           </section>
@@ -173,7 +173,7 @@ export default function Home() {
             <div className="wrap">
               <div className="sec-t" data-rev="true">
                 <h2 className="h2">LOOKBOOK</h2>
-                <Link href="/lookbook" className="tlink">VIEW LOOKBOOK →</Link>
+                <Link href="/lookbook" className="tlink">VIEW LOOKBOOK</Link>
               </div>
               <div className="lookgrid">
                 {photoLooks.map((look, i) => (
@@ -231,7 +231,7 @@ export default function Home() {
             <div className="wrap">
               <div className="sec-t" data-rev="true">
                 <h2 className="h2">JOURNAL</h2>
-                <Link href="/journal" className="tlink">ALL STORIES →</Link>
+                <Link href="/journal" className="tlink">ALL STORIES</Link>
               </div>
               <div className="grid-ed" data-rev="true">
                 {homeArticles.map((article) => (
@@ -239,7 +239,7 @@ export default function Home() {
                     <Plate slug={article.slug} word={article.category} label={article.title} />
                     <span className="cap mut">{article.category} — {article.readTime}</span>
                     <span className="h3">{article.title}</span>
-                    <span className="tlink">READ →</span>
+                    <span className="tlink">READ STORY</span>
                   </Link>
                 ))}
               </div>

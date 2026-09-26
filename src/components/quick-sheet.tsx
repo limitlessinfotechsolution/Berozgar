@@ -107,7 +107,7 @@ export function QuickSheet() {
                   })}
                 </div>
                 <Link className="tlink" href={`/shop/${product.slug}`} onClick={close}>
-                  VIEW FULL DETAILS →
+                  VIEW FULL DETAILS
                 </Link>
               </div>
             </div>

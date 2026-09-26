@@ -45,7 +45,7 @@ export function JournalClient({ articles }: { articles: Article[] }) {
           <div style={{ padding: "22px 0 0" }}>
             <span className="cap mut">{featured.category} — {featured.date} — {featured.readTime}</span>
             <h2 className="d-md" style={{ margin: "10px 0" }}>{featured.title}</h2>
-            <span className="tlink">READ →</span>
+            <span className="tlink">READ STORY</span>
           </div>
         </Link>
 
@@ -59,7 +59,7 @@ export function JournalClient({ articles }: { articles: Article[] }) {
               <Plate slug={article.slug} word={article.category} label={article.title} variant={0} />
               <span className="cap mut">{article.category} — {article.date} — {article.readTime}</span>
               <span className="h3">{article.title}</span>
-              <span className="tlink">READ →</span>
+              <span className="tlink">READ STORY</span>
             </Link>
           ))}
         </div>

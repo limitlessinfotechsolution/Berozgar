@@ -113,7 +113,8 @@ label.fl{display:block;font-size:11px;letter-spacing:.12em;text-transform:upperc
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
 .plate{position:relative;overflow:hidden;background:var(--ch);width:100%;height:100%;display:block}
 .plate::after{content:'';position:absolute;inset:0;background-image:inherit;pointer-events:none}
-.t0{background:var(--ch)}.t1{background:var(--dk)}.t2{background:var(--of);color:var(--bk)}.t3{background:var(--bk);color:var(--wt)}
+/* Dark tones need light type: without a colour the word inherited near-black and vanished on grey. */
+.t0{background:var(--ch);color:var(--wt)}.t1{background:var(--dk);color:var(--wt)}.t2{background:var(--of);color:var(--bk)}.t3{background:var(--bk);color:var(--wt)}
 .pt-a{background-image:repeating-linear-gradient(115deg,transparent 0 26px,rgba(255,255,255,.05) 26px 27px)}
 .pt-b{background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:28px 28px}
 .pt-c{background-image:radial-gradient(circle at 70% 30%,transparent 0 60px,rgba(255,255,255,.07) 60px 61px,transparent 61px 120px,rgba(255,255,255,.07) 120px 121px)}
@@ -276,6 +277,18 @@ footer{background:var(--bk);color:var(--wt);padding:clamp(56px,7vw,90px) 0 40px;
   .f-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   /* Five columns into two rows leaves the last one alone — let it fill instead. */
   .f-grid>:last-child:nth-child(odd){grid-column:1/-1}
+}
+.f-col h5 button{font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:default}
+@media(max-width:600px){
+  .f-grid{grid-template-columns:minmax(0,1fr);gap:0}
+  .f-grid>:first-child{margin-bottom:24px}
+  .f-col{border-top:1px solid var(--dk)}
+  .f-col h5{margin:0}
+  .f-col h5 button{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:52px;cursor:pointer}
+  .f-col h5 button::after{content:"+";font-size:16px;letter-spacing:0;color:#999}
+  .f-col.open h5 button::after{content:"−"}
+  .f-col:not(.open) .f-links{display:none}
+  .f-col.open .f-links{padding-bottom:14px}
 }
 /* ============ 11 BOTTOM NAV ============ */
 #bnav{position:fixed;left:0;right:0;bottom:0;z-index:900;display:none;background:var(--wt);border-top:1px solid var(--gy);

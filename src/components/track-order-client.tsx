@@ -135,12 +135,12 @@ export function TrackOrderClient() {
               className="tlink small"
               style={{ marginTop: "14px", display: "inline-block" }}
             >
-              NEED HELP WITH THIS ORDER? →
+              NEED HELP WITH THIS ORDER?
             </Link>
           </>
         )}
 
-        <Link href="/account/orders" className="tlink" style={{ marginTop: "28px", display: "inline-block" }}>VIEW ALL ORDERS →</Link>
+        <Link href="/account/orders" className="tlink" style={{ marginTop: "28px", display: "inline-block" }}>VIEW ALL ORDERS</Link>
       </div>
     </div>
   );
