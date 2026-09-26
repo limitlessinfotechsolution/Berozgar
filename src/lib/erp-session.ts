@@ -25,10 +25,20 @@ export function shopperIp(request: Request): string {
   return request.headers.get("x-real-ip") ?? "127.0.0.1";
 }
 
+/*
+ * One id per shopper request, sent to the ERP as x-request-id, so a failed
+ * checkout can be found in both logs. Reuses one a proxy in front of us set.
+ */
+function requestId(request: Request): string {
+  const given = request.headers.get("x-request-id");
+  return given && /^[A-Za-z0-9._-]{8,128}$/.test(given) ? given : crypto.randomUUID();
+}
+
 /** Headers every ERP call from this server carries. */
 export function erpHeaders(request: Request, token?: string | null): Record<string, string> {
   const secret = process.env.ERP_SERVER_SECRET;
   return {
+    "x-request-id": requestId(request),
     "x-forwarded-for": shopperIp(request),
     "x-bz-client-ip": shopperIp(request),
     ...(secret ? { "x-bz-storefront": secret } : {}),

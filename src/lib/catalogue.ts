@@ -99,15 +99,30 @@ export function resolveErpUrl(
   return parsed.origin;
 }
 
-export function erpUrl(path: string): string {
+/* The ERP API origin, e.g. for its /api/v1/health (src/app/api/health). */
+export function erpOrigin(): string {
   /* Both reads must stay literal: Next only inlines a written-out
      process.env.NEXT_PUBLIC_* expression, not one behind a variable. */
-  const base = resolveErpUrl(
+  return resolveErpUrl(
     process.env.ERP_API_URL,
     process.env.NEXT_PUBLIC_ERP_API_URL,
     process.env.NODE_ENV === "production"
   );
-  return `${base}/api/public/v1${path}`;
+}
+
+/*
+ * Refuses a "." or ".." segment (or its %2e form, which URL parsing treats the
+ * same): paths are built from URL params like an order number or slug, and a
+ * dot segment would resolve out of /api/public/v1 with the shopper's headers.
+ */
+export function erpUrl(path: string): string {
+  const pathname = path.split("?")[0]!;
+  const dotted = pathname.split("/").some((segment) => {
+    const s = segment.replace(/%2e/gi, ".");
+    return s === "." || s === "..";
+  });
+  if (dotted) throw new Error(`Refusing an ERP path with a dot segment: ${pathname}`);
+  return `${erpOrigin()}/api/public/v1${path}`;
 }
 
 type Page<T> = { data: T[]; page: number; totalPages: number };
@@ -137,10 +152,25 @@ export type CatalogueState = {
 
 /* For rendering. Never throws, so an ERP outage still leaves the legal pages,
    order tracking and the rest of the site up. */
+/*
+ * The last catalogue this server instance read successfully. An ERP blip used to
+ * render an empty shop until it came back — the admin's revalidate hook expires
+ * the cache outright, so there's no stale copy for Next to fall back on. This is
+ * per instance and in memory: a cold instance with the ERP down still shows the
+ * honest "can't reach the catalogue" state.
+ */
+let lastGood: Product[] | null = null;
+
 export async function getCatalogueState(): Promise<CatalogueState> {
   try {
-    return { products: await fetchCatalogue(), unavailable: false };
+    const products = await fetchCatalogue();
+    lastGood = products;
+    return { products, unavailable: false };
   } catch (error) {
+    if (lastGood) {
+      console.error("[catalogue] ERP unreachable, serving the last catalogue this instance read:", error);
+      return { products: lastGood, unavailable: false };
+    }
     console.error("[catalogue] ERP unreachable, rendering an empty catalogue:", error);
     return { products: [], unavailable: true };
   }

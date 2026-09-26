@@ -20,6 +20,9 @@ jobs:
 
       - run: npm run lint
 
+      # next build only type-checks what it bundles; tests and scripts need this.
+      - run: npx tsc --noEmit
+
       - run: npm test
 
       # NEXT_PUBLIC_SITE_URL is required — a production build fails without it.

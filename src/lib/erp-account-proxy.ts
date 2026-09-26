@@ -29,7 +29,9 @@ const AUTH_PATHS = new Set([
   "email/verify/resend",
 ]);
 
-const SEGMENT = /^[A-Za-z0-9._-]{1,80}$/;
+/* Letters, digits, ".", "_" and "-" — but never "." or ".." alone: fetch resolves
+   those, so /account/../.. would reach a different ERP path with the shopper's token. */
+const SEGMENT = /^(?!\.{1,2}$)[A-Za-z0-9._-]{1,80}$/;
 
 type Session = { token?: unknown; expiresAt?: unknown };
 

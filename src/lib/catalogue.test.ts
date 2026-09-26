@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { allowEmptyCatalogue, onCatalogueFailure, resolveErpUrl } from "./catalogue";
+import { describe, expect, it, vi } from "vitest";
+import { allowEmptyCatalogue, erpUrl, onCatalogueFailure, resolveErpUrl } from "./catalogue";
 
 /*
  * These two decide whether an unreachable ERP fails a build or quietly ships an
@@ -82,5 +82,51 @@ describe("allowEmptyCatalogue", () => {
     expect(allowEmptyCatalogue("0")).toBe(false);
     expect(allowEmptyCatalogue("false")).toBe(false);
     expect(allowEmptyCatalogue("yes")).toBe(false);
+  });
+});
+
+describe("erpUrl", () => {
+  it("builds public API URLs", () => {
+    vi.stubEnv("ERP_API_URL", "http://erp.test");
+    expect(erpUrl("/orders/BZ-1?phone=9")).toBe("http://erp.test/api/public/v1/orders/BZ-1?phone=9");
+    vi.unstubAllEnvs();
+  });
+
+  it("refuses dot segments, encoded or not, so a URL param can't climb out of /api/public/v1", () => {
+    vi.stubEnv("ERP_API_URL", "http://erp.test");
+    for (const bad of ["/orders/..", "/products/../../v1/users", "/orders/%2e%2e/x", "/orders/.%2E", "/a/./b"]) {
+      expect(() => erpUrl(bad)).toThrow(/dot segment/);
+    }
+    expect(erpUrl("/products/bz.ts.classic/reviews")).toContain("/products/bz.ts.classic/reviews");
+    vi.unstubAllEnvs();
+  });
+});
+
+describe("getCatalogueState", () => {
+  const page = (slug: string) =>
+    new Response(JSON.stringify({ data: [{ id: slug, slug, sku: slug, name: slug, description: null, basePrice: "399.00", category: null, images: [], variants: [] }], page: 1, totalPages: 1 }));
+
+  it("serves the last catalogue it read when the ERP blips, and says so only when it has none", async () => {
+    vi.resetModules();
+    vi.stubEnv("ERP_API_URL", "http://erp.test");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { getCatalogueState } = await import("./catalogue");
+
+    fetchMock.mockRejectedValueOnce(new Error("down"));
+    expect(await getCatalogueState()).toEqual({ products: [], unavailable: true });
+
+    fetchMock.mockResolvedValueOnce(page("bz-ts-classic"));
+    expect((await getCatalogueState()).products.map((p) => p.slug)).toEqual(["bz-ts-classic"]);
+
+    fetchMock.mockRejectedValueOnce(new Error("down again"));
+    const during = await getCatalogueState();
+    expect(during.unavailable).toBe(false);
+    expect(during.products.map((p) => p.slug)).toEqual(["bz-ts-classic"]);
+
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 });
