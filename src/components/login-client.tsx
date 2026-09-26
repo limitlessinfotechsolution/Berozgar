@@ -4,16 +4,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AuthCard } from "@/components/auth-card";
+import { safeNext } from "@/lib/next-path";
 import { FormError } from "@/components/form-error";
 import { useSession } from "@/components/session-provider";
 import { showToast } from "@/lib/ui-events";
 
 type Mode = "password" | "otp";
-
-/* Only same-site paths: ?next= must not send a shopper off to another site. */
-export function safeNext(value: string | null): string {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/account";
-}
 
 export function LoginClient() {
   const router = useRouter();
