@@ -18,6 +18,9 @@ const inrDecimal = (s: string) => `₹${Number(s).toLocaleString("en-IN", { mini
 
 const STEPS = ["01 INFORMATION", "02 DELIVERY", "03 PAYMENT", "04 REVIEW"];
 
+/* sessionStorage: this tab's checkout attempt (see checkoutSessionId). */
+const CHECKOUT_SESSION_KEY = "berozgar-checkout-session";
+
 const PAYMENTS: [string, string, string][] = [
   ["upi", "UPI", "GPay / PhonePe / Paytm"],
   ["card", "CARDS", "Credit & debit cards"],
@@ -48,10 +51,13 @@ type Quote = {
     subtotal: string;
     gst: string;
     grandTotal: string;
-    /* Prepaid discount and COD fee for the chosen method (Settings → Storefront). */
+    /* All discounts (prepaid + coupon) and the COD fee for the chosen method. */
     discount: string;
+    couponDiscount?: string;
     codFee: string;
   } | null;
+  coupon?: { code: string; description: string; discount: string } | null;
+  couponError?: { reason: string; message: string } | null;
   lines: { variantId: string; reason: string; available?: number }[];
   gstRate: string;
   cod: { available: boolean; reason: string | null; fee: string };
@@ -86,6 +92,24 @@ export default function CheckoutPage() {
   const [payFailure, setPayFailure] = useState<string | null>(null);
   /* The last quote received, tagged with the bag + shipping it priced. */
   const [quoteResult, setQuoteResult] = useState<{ key: string; value: Quote | "error" } | null>(null);
+  /* A code the shopper applied; the ERP quote says whether it's valid and what it's worth. */
+  const [couponInput, setCouponInput] = useState("");
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  /* One id per checkout attempt, kept across reloads in this tab: the ERP's draft
+     (abandoned cart) is keyed by it and marked recovered when the order is placed. */
+  const [checkoutSessionId] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const saved = window.sessionStorage.getItem(CHECKOUT_SESSION_KEY);
+      if (saved) return saved;
+      const fresh = crypto.randomUUID().replace(/-/g, "");
+      window.sessionStorage.setItem(CHECKOUT_SESSION_KEY, fresh);
+      return fresh;
+    } catch {
+      return crypto.randomUUID().replace(/-/g, "");
+    }
+  });
 
   const nameParts = (user?.name ?? "").split(" ");
   const delivery: Delivery = {
@@ -107,7 +131,32 @@ export default function CheckoutPage() {
 
   const lineItems = items.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
   const validPin = /^[1-9][0-9]{5}$/.test(delivery.pincode) ? delivery.pincode : undefined;
-  const quoteKey = JSON.stringify({ items: lineItems, express, payment, pincode: validPin });
+  const quoteKey = JSON.stringify({
+    items: lineItems,
+    express,
+    payment,
+    pincode: validPin,
+    ...(couponCode ? { couponCode } : {}),
+  });
+
+  /* The checkout in progress, saved to the ERP (debounced) once there is a way to reach
+     the shopper — staff see it under Abandoned carts until the order is placed. */
+  const draftKey = JSON.stringify({
+    sessionId: checkoutSessionId,
+    items: lineItems,
+    name: `${delivery.first} ${delivery.last}`.trim() || null,
+    phone: delivery.phone || null,
+    email: email || null,
+    marketingConsent,
+  });
+  useEffect(() => {
+    const draft = JSON.parse(draftKey) as { sessionId: string; items: unknown[]; phone: string | null; email: string | null };
+    if (step < 2 || !draft.sessionId || draft.items.length === 0 || (!draft.email && !draft.phone)) return;
+    const timer = window.setTimeout(() => {
+      void fetch("/api/checkout/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: draftKey }).catch(() => undefined);
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [step, draftKey]);
 
   /* The ERP's price for the bag — from the payment step on, because COD rules,
      the COD fee and the prepaid discount all depend on it. */
@@ -265,6 +314,10 @@ export default function CheckoutPage() {
   const shipping = (subtotal >= 999 ? 0 : 99) + (express ? 199 : 0);
   const priced = typeof quote === "object" && quote?.totals ? quote : null;
   const blocked = typeof quote === "object" && quote !== null && quote.lines.length > 0;
+  const appliedCoupon = priced?.coupon ?? null;
+  const couponProblem = couponCode && priced && !priced.coupon ? (priced.couponError?.message ?? "That code isn't valid.") : null;
+  const couponOff = Number(priced?.totals?.couponDiscount ?? 0);
+  const prepaidOff = Math.max(0, Number(priced?.totals?.discount ?? 0) - couponOff);
 
   /*
    * Goes through /api/checkout, a server-side proxy to the ERP.
@@ -300,6 +353,9 @@ export default function CheckoutPage() {
           payment,
           express,
           acceptedPolicies: policies.filter((policy) => policy.slug === "terms" || policy.slug === "privacy"),
+          // Only a code the quote accepted; the ERP checks it again when placing the order.
+          ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
+          ...(checkoutSessionId ? { checkoutSessionId } : {}),
         }),
       });
 
@@ -311,6 +367,11 @@ export default function CheckoutPage() {
       writeStored(LAST_ORDER_KEY, { id: data.orderId, phone: delivery.phone });
       rememberOrder(data.orderId, delivery.phone);
       clear();
+      try {
+        window.sessionStorage.removeItem(CHECKOUT_SESSION_KEY);
+      } catch {
+        /* storage blocked */
+      }
 
       if (data.razorpay) {
         const next: PendingPayment = { orderId: data.orderId, grandTotal: data.grandTotal, razorpay: data.razorpay };
@@ -370,7 +431,11 @@ export default function CheckoutPage() {
                   <label className="fl" htmlFor="co-email">EMAIL</label>
                   <input className="inp" id="co-email" type="email" required value={email} onChange={(e) => setEmailEdit(e.target.value)} />
                 </div>
-                <p className="small mut" style={{ margin: "0 0 22px" }}>Order updates will be sent here.</p>
+                <p className="small mut" style={{ margin: "0 0 14px" }}>Order updates will be sent here.</p>
+                <label className="ck" style={{ marginBottom: "22px" }}>
+                  <input type="checkbox" checked={marketingConsent} onChange={(e) => setMarketingConsent(e.target.checked)} />{" "}
+                  EMAIL ME DROPS &amp; OFFERS (AND A REMINDER IF I LEAVE ITEMS IN MY BAG)
+                </label>
                 <button className="btn btn-full" type="submit">CONTINUE TO DELIVERY →</button>
               </form>
             </>
@@ -637,10 +702,16 @@ export default function CheckoutPage() {
                 <span>Shipping</span>
                 <span className="num">{Number(priced.totals!.shipping) ? inrDecimal(priced.totals!.shipping) : "FREE"}</span>
               </div>
-              {Number(priced.totals!.discount) > 0 && (
+              {appliedCoupon && couponOff > 0 && (
+                <div className="sumrow">
+                  <span>Coupon {appliedCoupon.code}</span>
+                  <span className="num">−{inrDecimal(appliedCoupon.discount)}</span>
+                </div>
+              )}
+              {prepaidOff > 0 && (
                 <div className="sumrow">
                   <span>Prepaid discount</span>
-                  <span className="num">−{inrDecimal(priced.totals!.discount)}</span>
+                  <span className="num">−{inrDecimal(prepaidOff.toFixed(2))}</span>
                 </div>
               )}
               {Number(priced.totals!.codFee) > 0 && (
@@ -657,6 +728,34 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span className="num">{inrDecimal(priced.totals!.grandTotal)}</span>
               </div>
+              <form
+                className="coupon"
+                style={{ marginTop: "14px" }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const code = couponInput.trim().toUpperCase();
+                  setCouponCode(code || null);
+                }}
+              >
+                <input
+                  aria-label="Coupon code"
+                  placeholder="COUPON CODE"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  maxLength={30}
+                />
+                {appliedCoupon ? (
+                  <button type="button" onClick={() => { setCouponCode(null); setCouponInput(""); }}>REMOVE</button>
+                ) : (
+                  <button type="submit">APPLY</button>
+                )}
+              </form>
+              {appliedCoupon && (
+                <p className="small" style={{ marginTop: "6px" }}>{appliedCoupon.code} — {appliedCoupon.description}</p>
+              )}
+              {couponProblem && (
+                <p className="small" role="alert" style={{ marginTop: "6px", color: "var(--ru)" }}>{couponProblem}</p>
+              )}
             </>
           ) : (
             <>

@@ -15,6 +15,7 @@ import { Swatch } from "@/components/swatch";
 import { requestStockAlert } from "@/lib/audience";
 import { PincodeCheck } from "@/components/pincode-check";
 import { RecentlyViewed } from "@/components/recently-viewed";
+import { ProductReviews } from "@/components/product-reviews";
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
@@ -324,8 +325,8 @@ export function ProductDetail({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* No reviews section: the ERP's Review table is order-gated and nothing writes it
-            yet (roadmap M4). The block returns with real data rather than an empty shell. */}
+        {/* Approved reviews from delivered orders; renders nothing until there is one. */}
+        <ProductReviews slug={product.slug} />
 
         <section className="sec sec-of">
           <div className="wrap">

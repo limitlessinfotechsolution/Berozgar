@@ -21,6 +21,8 @@ function describe(status: number, body: { error?: string; message?: string; line
   if (status === 429) return "Too many attempts — wait a minute and try again.";
   // The ERP's own wording, e.g. "Cash on delivery is available on orders up to ₹3,000."
   if (body.error === "cod_unavailable" && body.message) return body.message;
+  // A coupon that expired or ran out between the quote and the order.
+  if (body.error === "coupon_invalid" && body.message) return body.message;
   if (body.lines?.length) {
     return body.lines
       .map((l) =>

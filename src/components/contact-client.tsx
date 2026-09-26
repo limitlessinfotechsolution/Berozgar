@@ -2,30 +2,75 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { SUPPORT, supportMailto, supportWhatsapp } from "@/lib/support";
+import { FormError } from "@/components/form-error";
+import { useSession } from "@/components/session-provider";
+import { accountApi } from "@/lib/account-client";
+import { SUPPORT, supportWhatsapp } from "@/lib/support";
 
-const SUBJECTS = ["ORDER", "PAYMENT", "SHIPPING", "RETURN / EXCHANGE", "PRODUCT", "SOMETHING ELSE"];
+/* Label on the form → the ERP ticket's category. */
+const SUBJECTS: Array<[label: string, category: string]> = [
+  ["ORDER", "order"],
+  ["PAYMENT", "payment"],
+  ["SHIPPING", "order"],
+  ["RETURN / EXCHANGE", "returns"],
+  ["PRODUCT", "product"],
+  ["MY ACCOUNT", "account"],
+  ["SOMETHING ELSE", "other"],
+];
 
+/*
+ * The contact form opens a support ticket in the ERP (/api/contact → ERP /contact), so a
+ * message is never lost in someone's mail app; the shopper gets a reference number and
+ * an acknowledgement email. WhatsApp stays as an alternative when a number is set.
+ */
 export function ContactClient() {
   const searchParams = useSearchParams();
+  const { user } = useSession();
   /* Arriving from an order page, the order number is already known. */
   const fromOrder = (searchParams.get("order") ?? "").toUpperCase();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
   const [order, setOrder] = useState(fromOrder);
   const [subject, setSubject] = useState("ORDER");
   const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ticket, setTicket] = useState<string | null>(null);
+
+  /* Untouched fields follow the signed-in shopper. */
+  const nameValue = name ?? user?.name ?? "";
+  const emailValue = email ?? user?.email ?? "";
+  const phoneValue = phone ?? user?.phone ?? "";
 
   const heading = `${subject}${order ? ` — #${order}` : ""}`;
-  const body = `${message}\n\n— ${name}${order ? `\nOrder: #${order}` : ""}`;
-  const mailto = supportMailto(heading, body);
   const whatsapp = supportWhatsapp(`${heading}\n${message}`);
 
-  /* There is no server-side mailbox: the message is handed to the shopper's own
-     mail app, so it can't be silently dropped on the way. */
-  function submit(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (mailto) window.location.href = mailto;
+    setBusy(true);
+    setError(null);
+    const result = await accountApi<{ ticketNumber: string | null }>("/api/contact", {
+      method: "POST",
+      body: {
+        name: nameValue.trim(),
+        email: emailValue.trim(),
+        phone: phoneValue.trim() || null,
+        orderNumber: order.trim() || null,
+        category: SUBJECTS.find(([label]) => label === subject)?.[1] ?? "other",
+        subject: heading,
+        message: message.trim(),
+        website,
+      },
+    });
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setTicket(result.data.ticketNumber ?? "received");
   }
 
   return (
@@ -37,12 +82,42 @@ export function ContactClient() {
 
       <div className="grid2" style={{ alignItems: "start" }}>
         <div data-rev="true">
-          {mailto || whatsapp ? (
+          {ticket ? (
+            <div className="empty" style={{ padding: "40px 0", textAlign: "left" }}>
+              <h2 className="h3">MESSAGE RECEIVED.</h2>
+              <p className="small mut" style={{ marginTop: "10px" }}>
+                {ticket !== "received" ? (
+                  <>Your reference is <b>{ticket}</b>. </>
+                ) : null}
+                We&apos;ll reply to <b>{emailValue}</b> {SUPPORT.responseWindow.toLowerCase()}.
+              </p>
+              <button
+                type="button"
+                className="btn btn-o"
+                style={{ marginTop: "20px" }}
+                onClick={() => { setTicket(null); setMessage(""); }}
+              >
+                SEND ANOTHER MESSAGE
+              </button>
+            </div>
+          ) : (
             <form onSubmit={submit}>
+              <FormError message={error} />
               <div className="frow">
                 <div className="fgrp">
                   <label className="fl" htmlFor="ct-name">NAME</label>
-                  <input className="inp" id="ct-name" required value={name} onChange={(e) => setName(e.target.value)} />
+                  <input className="inp" id="ct-name" required maxLength={120} autoComplete="name" value={nameValue} onChange={(e) => setName(e.target.value)} />
+                </div>
+                <div className="fgrp">
+                  <label className="fl" htmlFor="ct-email">EMAIL</label>
+                  <input className="inp" id="ct-email" type="email" required autoComplete="email" value={emailValue} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="frow">
+                <div className="fgrp">
+                  <label className="fl" htmlFor="ct-phone">PHONE (OPTIONAL)</label>
+                  <input className="inp" id="ct-phone" type="tel" autoComplete="tel" value={phoneValue} onChange={(e) => setPhone(e.target.value)} />
                 </div>
                 <div className="fgrp">
                   <label className="fl" htmlFor="ct-order">ORDER NUMBER (OPTIONAL)</label>
@@ -53,7 +128,7 @@ export function ContactClient() {
               <div className="fgrp">
                 <label className="fl" htmlFor="ct-subject">SUBJECT</label>
                 <select className="inp" id="ct-subject" value={subject} onChange={(e) => setSubject(e.target.value)}>
-                  {SUBJECTS.map((s) => <option key={s}>{s}</option>)}
+                  {SUBJECTS.map(([label]) => <option key={label}>{label}</option>)}
                 </select>
               </div>
 
@@ -63,6 +138,8 @@ export function ContactClient() {
                   className="inp"
                   id="ct-msg"
                   required
+                  minLength={10}
+                  maxLength={5000}
                   rows={6}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -70,26 +147,24 @@ export function ContactClient() {
                 />
               </div>
 
+              {/* Honeypot — hidden from people, filled by bots. */}
+              <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", width: "1px", height: "1px", overflow: "hidden" }}>
+                <label htmlFor="ct-website">WEBSITE</label>
+                <input id="ct-website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+              </div>
+
               <div style={{ display: "grid", gap: "10px" }}>
-                {mailto && <button className="btn btn-full" type="submit">SEND BY EMAIL</button>}
+                <button className="btn btn-full" type="submit" disabled={busy}>{busy ? "SENDING…" : "SEND MESSAGE"}</button>
                 {whatsapp && (
                   <a className="btn btn-o btn-full" href={whatsapp} target="_blank" rel="noopener noreferrer">
-                    SEND ON WHATSAPP
+                    OR MESSAGE US ON WHATSAPP
                   </a>
                 )}
               </div>
               <p className="small mut" style={{ marginTop: "12px" }}>
-                Opens your own email or WhatsApp with the message filled in. We reply {SUPPORT.responseWindow.toLowerCase()}.
+                You&apos;ll get a reference number straight away. We reply by email {SUPPORT.responseWindow.toLowerCase()}.
               </p>
             </form>
-          ) : (
-            <div className="empty" style={{ padding: "40px 0" }}>
-              <h2 className="h3">SUPPORT OPENS SOON.</h2>
-              <p className="small mut">
-                Our support inbox isn&apos;t live yet.
-                {fromOrder ? ` Keep your order number — #${fromOrder} — handy.` : ""}
-              </p>
-            </div>
           )}
         </div>
 

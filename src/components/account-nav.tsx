@@ -10,6 +10,7 @@ const TABS: [string, string][] = [
   ["", "OVERVIEW"],
   ["orders", "ORDERS"],
   ["wishlist", "WISHLIST"],
+  ["reviews", "REVIEWS"],
   ["addresses", "ADDRESSES"],
   ["profile", "PROFILE"],
 ];

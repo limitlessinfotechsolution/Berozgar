@@ -74,12 +74,7 @@ export default function CartPage() {
               <div className="bar"><i style={{ width: `${progress}%` }}></i></div>
             </div>
 
-            {/*
-              No coupon field. The ERP's Coupon table exists but nothing writes it —
-              the admin's coupon screen still saves a SystemSetting JSON blob
-              (roadmap M4). A permanently disabled input is an advertisement for a
-              feature that isn't there; it returns when codes can actually be redeemed.
-            */}
+            {/* Coupons are applied at checkout, against the ERP quote — not here. */}
           </div>
 
           <div className="co-sum">
