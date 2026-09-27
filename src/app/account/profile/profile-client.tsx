@@ -1,37 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { FormError } from "@/components/form-error";
+import { PhoneInput } from "@/components/phone-input";
+import { SavedNote, useSavedNote } from "@/components/saved-note";
 import { useSession, type User } from "@/components/session-provider";
 import { accountApi, type Customer } from "@/lib/account-client";
+import { formatDay, todayIso } from "@/lib/dates";
+import { toNationalMobile } from "@/lib/phone";
 import { showToast } from "@/lib/ui-events";
-import { PhoneInput } from "@/components/phone-input";
 
-const section: React.CSSProperties = {
-  maxWidth: "560px",
-  marginTop: "44px",
-  borderTop: "1px solid var(--gy)",
-  paddingTop: "28px",
-};
-
-/* Name, email and date of birth. A new email has to be confirmed again. */
+/*
+ * Name, email, WhatsApp and date of birth. A new email has to be confirmed again.
+ * The mobile number and password live under Security: they're how you sign in.
+ *
+ * WhatsApp: the ERP sends WhatsApp messages to `whatsapp`, or to the mobile when
+ * that's empty (worker notifications.ts), so "Same as my mobile" stores nothing.
+ */
 function DetailsForm({ user }: { user: User }) {
   const { setCustomer } = useSession();
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
+  const [dob, setDob] = useState(user.dob ?? "");
+  const initialSame = !user.whatsapp || user.whatsapp === user.phone;
+  const [sameAsMobile, setSameAsMobile] = useState(initialSame);
+  const [whatsapp, setWhatsapp] = useState(initialSame ? "" : (user.whatsapp ?? ""));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saved, flashSaved] = useSavedNote();
+
+  /* Typing your own mobile here is the same as ticking the box. */
+  const typedWhatsapp = toNationalMobile(whatsapp);
+  const whatsappValue = sameAsMobile || typedWhatsapp === user.phone ? "" : typedWhatsapp;
+  const savedWhatsapp = initialSame ? "" : (user.whatsapp ?? "");
+  const dirty =
+    name.trim() !== user.name ||
+    email.trim() !== user.email ||
+    dob !== (user.dob ?? "") ||
+    whatsappValue !== savedWhatsapp;
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
     const result = await accountApi<{ customer: Customer }>("/api/account/profile", {
       method: "PATCH",
-      body: {
-        name: String(form.get("name") || "").trim(),
-        email: String(form.get("email") || "").trim(),
-        dateOfBirth: String(form.get("dob") || ""),
-      },
+      body: { name: name.trim(), email: email.trim(), dateOfBirth: dob, whatsapp: whatsappValue },
     });
     setBusy(false);
     if (!result.ok) {
@@ -39,7 +54,14 @@ function DetailsForm({ user }: { user: User }) {
       return;
     }
     setCustomer(result.data.customer);
-    showToast(result.data.customer.emailVerified ? "PROFILE SAVED" : "PROFILE SAVED — CHECK YOUR EMAIL TO VERIFY IT");
+    if (!whatsappValue && user.phone) {
+      setSameAsMobile(true);
+      setWhatsapp("");
+    }
+    flashSaved();
+    if (!result.data.customer.emailVerified && email.trim() !== user.email) {
+      showToast("CHECK YOUR EMAIL TO VERIFY THE NEW ADDRESS");
+    }
   }
 
   async function resend() {
@@ -48,224 +70,151 @@ function DetailsForm({ user }: { user: User }) {
   }
 
   return (
-    <form style={{ maxWidth: "560px", marginTop: "24px" }} onSubmit={save}>
-      <FormError message={error} />
-      <div className="frow">
-        <div className="fgrp">
-          <label className="fl" htmlFor="pf-name">NAME</label>
-          <input className="inp" id="pf-name" name="name" required maxLength={120} autoComplete="name" defaultValue={user.name} />
-        </div>
-        <div className="fgrp">
-          <label className="fl" htmlFor="pf-dob">DOB</label>
-          <input className="inp" id="pf-dob" name="dob" type="date" defaultValue={user.dob ?? ""} />
-        </div>
-      </div>
-      <div className="fgrp">
-        <label className="fl" htmlFor="pf-email">
-          EMAIL {user.email && (user.emailVerified ? "· VERIFIED" : "· NOT VERIFIED")}
-        </label>
-        <input className="inp" id="pf-email" name="email" type="email" required autoComplete="email" defaultValue={user.email} />
-        {user.email && !user.emailVerified && (
-          <button type="button" className="tlink small" style={{ border: 0, background: "none", padding: 0, marginTop: "8px", cursor: "pointer" }} onClick={() => void resend()}>
-            RESEND VERIFICATION LINK
-          </button>
-        )}
-      </div>
-      <button className="btn" style={{ marginTop: "12px" }} type="submit" disabled={busy}>
-        {busy ? "SAVING…" : "SAVE CHANGES"}
-      </button>
-    </form>
-  );
-}
-
-/* A phone changes only with a code sent to it; proving it also brings in past guest orders. */
-function PhoneForm({ user }: { user: User }) {
-  const { requestOtp, setCustomer } = useSession();
-  const [editing, setEditing] = useState(false);
-  const [phone, setPhone] = useState(user.phone ?? "");
-  const [code, setCode] = useState("");
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function send(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const result = await requestOtp(phone.trim(), "VERIFY_PHONE");
-    setBusy(false);
-    if (!result.ok) return setError(result.error);
-    setSent(true);
-  }
-
-  async function verify(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    const result = await accountApi<{ customer: Customer; mergedRecords?: number }>("/api/account/phone", {
-      method: "POST",
-      body: { phone: phone.trim(), code: code.trim(), purpose: "VERIFY_PHONE" },
-    });
-    setBusy(false);
-    if (!result.ok) {
-      return setError(result.status === 409 ? "That number is already verified on another account." : result.error);
-    }
-    setCustomer(result.data.customer);
-    setEditing(false);
-    setSent(false);
-    setCode("");
-    showToast(result.data.mergedRecords ? "PHONE VERIFIED — PAST ORDERS ADDED" : "PHONE VERIFIED");
-  }
-
-  return (
-    <div style={section}>
-      <h3 className="cap" style={{ marginBottom: "12px" }}>MOBILE</h3>
-      {!editing ? (
-        <>
-          <p className="small">
-            {user.phone ? <b>{user.phone}</b> : "No number yet."}{" "}
-            {user.phone && <span className="mut">{user.phoneVerified ? "· VERIFIED" : "· NOT VERIFIED"}</span>}
-          </p>
-          <button type="button" className="btn btn-o" style={{ marginTop: "14px" }} onClick={() => setEditing(true)}>
-            {user.phone && !user.phoneVerified ? "VERIFY NUMBER" : "CHANGE NUMBER"}
-          </button>
-        </>
-      ) : !sent ? (
-        <form onSubmit={send}>
-          <FormError message={error} />
+    <section className="acc-sec first" aria-labelledby="pf-details-h">
+      <h2 className="cap" id="pf-details-h">Personal details</h2>
+      <form onSubmit={save}>
+        <FormError message={error} />
+        <div className="frow">
           <div className="fgrp">
-            <label className="fl" htmlFor="pf-phone">MOBILE NUMBER</label>
-            <PhoneInput id="pf-phone" required value={phone} onChange={setPhone} />
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button className="btn" type="submit" disabled={busy}>{busy ? "SENDING…" : "SEND CODE"}</button>
-            <button className="btn btn-o" type="button" onClick={() => { setEditing(false); setError(null); }}>CANCEL</button>
-          </div>
-        </form>
-      ) : (
-        <form onSubmit={verify}>
-          <FormError message={error} />
-          <p className="small" style={{ marginBottom: "14px" }}>Enter the 6-digit code sent for <b>{phone}</b>.</p>
-          <div className="fgrp">
-            <label className="fl" htmlFor="pf-code">CODE</label>
+            <label className="fl" htmlFor="pf-name">Name</label>
             <input
-              className="inp num"
-              id="pf-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
+              className="inp"
+              id="pf-name"
               required
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              maxLength={120}
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button className="btn" type="submit" disabled={busy}>{busy ? "CHECKING…" : "VERIFY"}</button>
-            <button className="btn btn-o" type="button" onClick={() => { setSent(false); setCode(""); setError(null); }}>BACK</button>
+          <div className="fgrp">
+            <label className="fl" htmlFor="pf-dob">Date of birth (optional)</label>
+            <input
+              className="inp"
+              id="pf-dob"
+              type="date"
+              max={todayIso()}
+              autoComplete="bday"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+            />
           </div>
-        </form>
-      )}
-    </div>
+        </div>
+
+        <div className="fgrp">
+          <label className="fl" htmlFor="pf-email">
+            Email
+            {user.email && (
+              <span className={user.emailVerified ? "pill pill-ok" : "pill pill-warn"}>
+                {user.emailVerified ? "Verified" : "Not verified"}
+              </span>
+            )}
+          </label>
+          <input
+            className="inp"
+            id="pf-email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {user.email && !user.emailVerified && email.trim() === user.email && (
+            <p className="small mut" style={{ marginTop: "8px" }}>
+              We sent a link to confirm this address.{" "}
+              <button type="button" className="tlink small" style={{ border: 0, background: "none", padding: 0, cursor: "pointer" }} onClick={() => void resend()}>
+                Resend link
+              </button>
+            </p>
+          )}
+        </div>
+
+        <fieldset className="fgrp" style={{ border: 0, padding: 0, margin: "0 0 16px" }}>
+          <legend className="fl" style={{ padding: 0 }}>WhatsApp number</legend>
+          {user.phone && (
+            <label className="ck">
+              <input type="checkbox" checked={sameAsMobile} onChange={(e) => setSameAsMobile(e.target.checked)} />
+              Same as my mobile (+91 {user.phone})
+            </label>
+          )}
+          {(!sameAsMobile || !user.phone) && (
+            <div style={{ marginTop: "8px" }}>
+              <label className="sr-only" htmlFor="pf-whatsapp">WhatsApp number</label>
+              <PhoneInput id="pf-whatsapp" value={whatsapp} onChange={setWhatsapp} />
+            </div>
+          )}
+          <p className="small mut" style={{ marginTop: "6px" }}>
+            Order and delivery updates on WhatsApp go here.
+          </p>
+        </fieldset>
+
+        <div className="form-act">
+          <button className="btn" type="submit" disabled={busy || !dirty}>
+            {busy ? "SAVING…" : "SAVE CHANGES"}
+          </button>
+          <SavedNote show={saved} />
+        </div>
+      </form>
+    </section>
   );
 }
 
 /* Marketing only — order and delivery updates are always sent. */
-function PreferencesForm({ user }: { user: User }) {
+function NotificationsForm({ user }: { user: User }) {
   const { refresh } = useSession();
+  const [email, setEmail] = useState(user.marketingEmailOptIn);
+  const [whatsapp, setWhatsapp] = useState(user.marketingWhatsappOptIn);
+  const [changedAt, setChangedAt] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saved, flashSaved] = useSavedNote();
+  const dirty = email !== user.marketingEmailOptIn || whatsapp !== user.marketingWhatsappOptIn;
+
+  useEffect(() => {
+    let cancelled = false;
+    void accountApi<{ updatedAt: string | null }>("/api/account/preferences").then((result) => {
+      if (!cancelled && result.ok) setChangedAt(result.data.updatedAt);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
     setBusy(true);
-    const result = await accountApi("/api/account/preferences", {
+    const result = await accountApi<{ updatedAt: string | null }>("/api/account/preferences", {
       method: "PATCH",
-      body: {
-        marketingEmailOptIn: form.get("email") === "on",
-        marketingWhatsappOptIn: form.get("whatsapp") === "on",
-      },
+      body: { marketingEmailOptIn: email, marketingWhatsappOptIn: whatsapp },
     });
     setBusy(false);
     if (!result.ok) return showToast(result.error.toUpperCase());
+    setChangedAt(result.data.updatedAt);
     await refresh();
-    showToast("PREFERENCES SAVED");
+    flashSaved();
   }
 
   return (
-    <form style={section} onSubmit={save}>
-      <h3 className="cap" style={{ marginBottom: "12px" }}>PREFERENCES</h3>
-      <label className="ck"><input type="checkbox" name="email" defaultChecked={user.marketingEmailOptIn} /> DROPS &amp; OFFERS BY EMAIL</label>
-      <label className="ck"><input type="checkbox" name="whatsapp" defaultChecked={user.marketingWhatsappOptIn} /> DROPS &amp; OFFERS ON WHATSAPP</label>
-      <p className="small mut" style={{ marginTop: "6px" }}>Order and delivery updates are always sent.</p>
-      <button className="btn btn-o" style={{ marginTop: "16px" }} type="submit" disabled={busy}>
-        {busy ? "SAVING…" : "SAVE PREFERENCES"}
-      </button>
-    </form>
-  );
-}
-
-/* Separate form: a password change must not ride along with profile edits. */
-function PasswordForm({ user }: { user: User }) {
-  const { refresh } = useSession();
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function save(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formElement = e.currentTarget;
-    const form = new FormData(formElement);
-    setBusy(true);
-    setError(null);
-    const result = await accountApi("/api/account/password", {
-      method: "POST",
-      body: {
-        ...(user.hasPassword ? { currentPassword: String(form.get("current") || "") } : {}),
-        newPassword: String(form.get("new") || ""),
-      },
-    });
-    setBusy(false);
-    if (!result.ok) {
-      return setError(result.code === "wrong_password" ? "Your current password isn't right." : result.error);
-    }
-    formElement.reset();
-    await refresh();
-    showToast(user.hasPassword ? "PASSWORD UPDATED — OTHER DEVICES SIGNED OUT" : "PASSWORD SET");
-  }
-
-  return (
-    <form style={section} onSubmit={save}>
-      <h3 className="cap" style={{ marginBottom: "12px" }}>PASSWORD</h3>
-      <FormError message={error} />
-      {!user.hasPassword && (
-        <p className="small mut" style={{ marginBottom: "14px" }}>
-          You sign in with a one-time code. Set a password to also sign in with your email.
-        </p>
-      )}
-      {user.hasPassword && (
-        <div className="fgrp">
-          <label className="fl" htmlFor="pf-current">CURRENT PASSWORD</label>
-          <input className="inp" id="pf-current" name="current" type="password" required autoComplete="current-password" />
+    <section className="acc-sec" aria-labelledby="pf-notify-h">
+      <h2 className="cap" id="pf-notify-h">Notifications</h2>
+      <p className="small mut">
+        Order and delivery updates are always sent. Choose where you hear about drops and offers.
+      </p>
+      <form onSubmit={save}>
+        <label className="ck">
+          <input type="checkbox" checked={email} onChange={(e) => setEmail(e.target.checked)} /> Drops &amp; offers by email
+        </label>
+        <label className="ck">
+          <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} /> Drops &amp; offers on WhatsApp
+        </label>
+        {changedAt && <p className="small mut" style={{ marginTop: "6px" }}>Last changed {formatDay(changedAt)}.</p>}
+        <div className="form-act" style={{ marginTop: "16px" }}>
+          <button className="btn btn-o" type="submit" disabled={busy || !dirty}>
+            {busy ? "SAVING…" : "SAVE PREFERENCES"}
+          </button>
+          <SavedNote show={saved} />
         </div>
-      )}
-      <div className="fgrp">
-        <label className="fl" htmlFor="pf-new">NEW PASSWORD</label>
-        <input
-          className="inp"
-          id="pf-new"
-          name="new"
-          type="password"
-          required
-          minLength={8}
-          maxLength={128}
-          autoComplete="new-password"
-          placeholder="8+ characters, a letter and a number"
-        />
-      </div>
-      <button className="btn btn-o" style={{ marginTop: "8px" }} type="submit" disabled={busy}>
-        {busy ? "SAVING…" : user.hasPassword ? "UPDATE PASSWORD" : "SET PASSWORD"}
-      </button>
-    </form>
+      </form>
+    </section>
   );
 }
 
@@ -275,13 +224,15 @@ export function Profile() {
   return (
     <>
       <h1 className="h2">PROFILE</h1>
+      <p className="small mut acc-sub">
+        Your mobile number and password are under <Link href="/account/security" className="tlink">Security</Link>.
+      </p>
       {user && (
         <>
-          {/* Keyed so defaultValues follow a save or a fresh session. */}
-          <DetailsForm key={`${user.name}|${user.email}|${user.dob}`} user={user} />
-          <PhoneForm key={`${user.phone}|${user.phoneVerified}`} user={user} />
-          <PreferencesForm key={`${user.marketingEmailOptIn}|${user.marketingWhatsappOptIn}`} user={user} />
-          <PasswordForm user={user} />
+          {/* Keyed by account only: the forms hold their own state and compare it
+              with the session, so a save doesn't remount them (and lose "Saved"). */}
+          <DetailsForm key={user.id} user={user} />
+          <NotificationsForm key={`n-${user.id}`} user={user} />
         </>
       )}
     </>

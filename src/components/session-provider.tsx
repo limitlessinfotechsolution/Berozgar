@@ -9,12 +9,15 @@ export type User = {
   name: string;
   email: string;
   phone?: string;
+  /* 10-digit local form; absent when WhatsApp messages go to `phone`. */
+  whatsapp?: string;
   dob?: string;
   emailVerified: boolean;
   phoneVerified: boolean;
   hasPassword: boolean;
   marketingEmailOptIn: boolean;
   marketingWhatsappOptIn: boolean;
+  createdAt: string;
 };
 
 export type RegisterInput = {
@@ -56,12 +59,14 @@ export function toUser(c: Customer): User {
     name: c.name,
     email: c.email ?? "",
     phone: localPhone(c.phone) || undefined,
+    whatsapp: localPhone(c.whatsapp) || undefined,
     dob: c.dateOfBirth ?? undefined,
     emailVerified: c.emailVerified,
     phoneVerified: c.phoneVerified,
     hasPassword: c.hasPassword,
     marketingEmailOptIn: c.marketingEmailOptIn,
     marketingWhatsappOptIn: c.marketingWhatsappOptIn,
+    createdAt: c.createdAt,
   };
 }
 

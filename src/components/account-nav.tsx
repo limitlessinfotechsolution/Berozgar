@@ -13,6 +13,7 @@ const TABS: [string, string][] = [
   ["reviews", "REVIEWS"],
   ["addresses", "ADDRESSES"],
   ["profile", "PROFILE"],
+  ["security", "SECURITY"],
 ];
 
 export function AccountNav() {

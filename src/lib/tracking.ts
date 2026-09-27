@@ -159,6 +159,15 @@ export function statusDetail(status: ErpOrderStatus, shipment?: TrackedShipment 
   return null;
 }
 
+/* One status word for an order list or card. The ERP's internal production stages
+   read as IN PRODUCTION, as they do on the tracking page; anything unknown is shown
+   as the ERP wrote it. */
+export function orderStatusLabel(status: string): string {
+  if (["DESIGNING", "DESIGN_APPROVED", "PRODUCTION", "QC"].includes(status)) return "IN PRODUCTION";
+  if (status === "NEW") return "PLACED";
+  return status.replace(/_/g, " ");
+}
+
 /* When the order first reached each step: the ERP's status history, plus the
    shipment's own events for the step that isn't an order status. */
 export function stepTimes(order: TrackedOrder): (string | null)[] {

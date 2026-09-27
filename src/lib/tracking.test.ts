@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paymentState, statusDetail, stepTimes, trackStep, type TrackedOrder, type TrackedShipment } from "@/lib/tracking";
+import { orderStatusLabel, paymentState, statusDetail, stepTimes, trackStep, type TrackedOrder, type TrackedShipment } from "@/lib/tracking";
 
 describe("trackStep", () => {
   it("maps the ERP's 12 statuses onto the six customer steps", () => {
@@ -80,5 +80,14 @@ describe("paymentState", () => {
     expect(paymentState({ payment: { method: "UPI", status: "PAID" } })).toBe("PAID");
     expect(paymentState({ payment: { method: "UPI", status: "PENDING" } })).toBe("PAYMENT PENDING");
     expect(paymentState({ payment: { method: "UPI", status: "FAILED" } })).toBe("PAYMENT PENDING");
+  });
+});
+
+describe("orderStatusLabel", () => {
+  it("says what the shopper would call it", () => {
+    expect(orderStatusLabel("NEW")).toBe("PLACED");
+    expect(orderStatusLabel("QC")).toBe("IN PRODUCTION");
+    expect(orderStatusLabel("AWAITING_APPROVAL")).toBe("AWAITING APPROVAL");
+    expect(orderStatusLabel("DELIVERED")).toBe("DELIVERED");
   });
 });

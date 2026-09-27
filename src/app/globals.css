@@ -89,6 +89,7 @@ ul{list-style:none}
 .tlink{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   border-bottom:1px solid var(--bk);padding-bottom:4px;transition:color var(--tn),border-color var(--tn)}
 .tlink:hover{color:var(--ru);border-color:var(--ru)}
+button.tlink{background:none;border-width:0 0 1px;border-style:solid;padding:0 0 4px;cursor:pointer;color:inherit}
 .tlink-w{border-color:var(--wt)}
 .tlink-w:hover{color:var(--ru);border-color:var(--ru)}
 .inp{width:100%;min-height:50px;padding:0 16px;border:1px solid #ccc;background:var(--wt);transition:border-color var(--tn)}
@@ -106,7 +107,7 @@ select.inp{appearance:none;padding-right:40px;cursor:pointer;background-image:ur
 select.inp:invalid{color:#999}
 select.inp option{color:var(--bk)}
 select.inp:disabled{cursor:default;color:var(--bk);background-color:var(--of);background-image:none}
-label.fl{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin:0 0 6px}
+label.fl,legend.fl{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin:0 0 6px}
 .frow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 @media(max-width:560px){.frow{grid-template-columns:minmax(0,1fr)}}
 .fgrp{margin-bottom:16px}
@@ -588,6 +589,36 @@ html[data-buybar] #sticky-cta{bottom:0;padding-bottom:calc(10px + env(safe-area-
 .addr-act{display:flex;gap:16px;margin-top:16px}
 .addr-act button{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#888}
 .addr-act button:hover{color:var(--bk)}
+/* Account settings: one section per concern, a status pill beside a value, and
+   a quiet "Saved" that screen readers hear (role=status) next to its button. */
+.acc-sub{margin-top:6px}
+.acc-sec{max-width:600px;margin-top:44px;border-top:1px solid var(--gy);padding-top:28px}
+.acc-sec.first{margin-top:28px;border-top:0;padding-top:0}
+.acc-sec>.cap{margin-bottom:6px}
+.acc-sec>.small.mut{margin-bottom:18px}
+.pill{display:inline-flex;align-items:center;font-size:9px;line-height:1;letter-spacing:.16em;font-weight:800;text-transform:uppercase;padding:4px 7px;border:1px solid currentColor;margin-left:8px;vertical-align:middle;white-space:nowrap}
+.pill-ok{background:var(--bk);border-color:var(--bk);color:var(--wt)}
+.pill-warn{color:var(--ru)}
+.form-act{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.saved{font-size:11px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:#777;min-width:1px}
+.pw-in{position:relative}
+.pw-in .inp{padding-right:76px}
+.pw-tog{position:absolute;right:1px;top:1px;bottom:1px;padding:0 16px;font-size:11px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;color:#555;background:var(--wt);border:0;cursor:pointer}
+.pw-tog:hover{color:var(--bk)}
+.pw-rules{list-style:none;margin:10px 0 0;padding:0;display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12px;color:#888}
+.pw-rules li::before{content:"\25CB";margin-right:6px}
+.pw-rules li.met{color:var(--bk)}
+.pw-rules li.met::before{content:"\2713"}
+.ov-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px}
+@media(max-width:640px){.ov-grid{grid-template-columns:minmax(0,1fr)}}
+.ov-card{border:1px solid var(--gy);padding:22px;display:flex;flex-direction:column;gap:6px;min-height:168px}
+.ov-card>.cap{color:#888;margin-bottom:4px}
+.ov-card .ov-act{margin-top:auto;padding-top:12px;display:flex;gap:18px;flex-wrap:wrap}
+.skel-line{height:13px;width:70%;background:linear-gradient(100deg,var(--gy) 40%,#f4f4f4 50%,var(--gy) 60%);background-size:200% 100%;animation:shim 1.1s linear infinite}
+.skel-line.short{width:40%}
+.nudges{border:1px solid var(--bk);padding:6px 22px;margin-top:24px;list-style:none}
+.nudges li{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;padding:14px 0;border-top:1px solid var(--gy)}
+.nudges li:first-child{border-top:0}
 /* ============ 17 EDITORIAL PAGES ============ */
 .mani-sec{min-height:88svh;display:flex;align-items:center}
 .mani-sec .big{font-weight:900;text-transform:uppercase;letter-spacing:-.03em;line-height:.95;font-size:clamp(2.6rem,9vw,8.5rem)}

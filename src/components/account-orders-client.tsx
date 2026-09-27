@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { inr } from "@/components/order-view";
 import { accountApi } from "@/lib/account-client";
-import { formatStamp } from "@/lib/tracking";
+import { formatStamp, orderStatusLabel } from "@/lib/tracking";
 
 type OrderRow = {
   orderNumber: string;
@@ -61,8 +61,8 @@ export function AccountOrdersClient() {
       {!orders && !error && <p className="small mut" style={{ marginTop: "16px" }}>LOADING…</p>}
       {orders?.length === 0 && (
         <p className="small mut" style={{ marginTop: "16px" }}>
-          No orders yet. Ordered as a guest? Verify that phone number on your{" "}
-          <Link href="/account/profile" className="tlink">PROFILE</Link> and those orders appear here.
+          No orders yet. Ordered as a guest? Verify that phone number under{" "}
+          <Link href="/account/security" className="tlink">SECURITY</Link> and those orders appear here.
         </p>
       )}
       {orders?.map((order) => (
@@ -72,7 +72,7 @@ export function AccountOrdersClient() {
             {formatStamp(order.createdAt).split(",")[0]} · {order.units} {order.units === 1 ? "ITEM" : "ITEMS"} · {order.names.join(", ")}
           </span>
           <span className="small">
-            <b>{order.status.replace(/_/g, " ")}</b>
+            <b>{orderStatusLabel(order.status)}</b>
             {order.openClaims > 0 ? " · CLAIM OPEN" : ""} · {inr(order.grandTotal)}
           </span>
           <b className="small">VIEW</b>

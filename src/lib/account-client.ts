@@ -17,6 +17,8 @@ export type Customer = {
   hasPassword: boolean;
   marketingEmailOptIn: boolean;
   marketingWhatsappOptIn: boolean;
+  /** ISO timestamp the account was created. */
+  createdAt: string;
 };
 
 export type ApiResult<T> =
