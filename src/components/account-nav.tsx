@@ -14,6 +14,7 @@ const TABS: [string, string][] = [
   ["addresses", "ADDRESSES"],
   ["profile", "PROFILE"],
   ["security", "SECURITY"],
+  ["privacy", "PRIVACY"],
 ];
 
 export function AccountNav() {
