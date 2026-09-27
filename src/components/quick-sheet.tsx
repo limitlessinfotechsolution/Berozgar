@@ -108,6 +108,15 @@ export function QuickSheet() {
                     );
                   })}
                 </div>
+                {/* Sizes here add on tap, so a sold-out one can't take an email; the product page can. */}
+                {product.sizes.some((size) => findVariant(product, size, activeColor)?.stock === 0) && (
+                  <p className="small mut" style={{ margin: "-6px 0 14px" }}>
+                    Crossed-out sizes are sold out.{" "}
+                    <Link href={`/shop/${product.slug}`} onClick={close} style={{ textDecoration: "underline" }}>
+                      Get an email when yours is back
+                    </Link>
+                  </p>
+                )}
                 <Link className="tlink" href={`/shop/${product.slug}`} onClick={close}>
                   VIEW FULL DETAILS
                 </Link>

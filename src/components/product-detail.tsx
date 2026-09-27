@@ -58,6 +58,12 @@ export function ProductDetail({ product }: { product: Product }) {
     track.scrollTo({ left: index * track.clientWidth, behavior: "smooth" });
   }
 
+  const selected = size ? findVariant(product, size, color) : undefined;
+  /* A size that exists in this colour but has none left: pickable, so the shopper
+     can ask to be told when it's back. A size never made in this colour is not. */
+  const selectedOut = Boolean(selected && selected.stock <= 0);
+  const notifyMode = product.soldout || selectedOut;
+
   /* The sticky bar appears once the main add-to-bag button scrolls out of view. */
   useEffect(() => {
     const target = document.getElementById("pdp-atb");
@@ -68,15 +74,16 @@ export function ProductDetail({ product }: { product: Product }) {
     );
     observer.observe(target);
     return () => observer.disconnect();
-  }, []);
+    // Re-observe when the add-to-bag button is swapped for the notify form and back.
+  }, [notifyMode]);
 
   /* globals.css hides the bottom nav while the buy bar is up. */
   useEffect(() => {
     const root = document.documentElement;
-    if (stickyShown) root.dataset.buybar = "";
+    if (stickyShown && !notifyMode) root.dataset.buybar = "";
     else delete root.dataset.buybar;
     return () => { delete root.dataset.buybar; };
-  }, [stickyShown]);
+  }, [stickyShown, notifyMode]);
 
   const hasPhotos = product.images.length > 0;
   const slides = hasPhotos ? product.images.length : 5;
@@ -84,12 +91,11 @@ export function ProductDetail({ product }: { product: Product }) {
     .filter((p) => p.id !== product.id && p.category === product.category)
     .concat(products.filter((p) => p.id !== product.id && p.category !== product.category))
     .slice(0, 4);
-  const selected = size ? findVariant(product, size, color) : undefined;
 
   function pickColor(next: string) {
     setColor(next);
-    /* Keep the size only if it's still available in the new colour. */
-    if (size && !sizeAvailable(product, size, next)) setSize(null);
+    /* Keep the size if it exists in the new colour — even sold out, for the alert. */
+    if (size && !findVariant(product, size, next)) setSize(null);
   }
 
   function addToBag(openBag = true, buyNow = false) {
@@ -267,11 +273,15 @@ export function ProductDetail({ product }: { product: Product }) {
               <div className="szrow" id="pdp-sizes">
                 {product.sizes.map((s) => {
                   const oos = !sizeAvailable(product, s, color);
+                  /* Not made in this colour at all — nothing to restock or ask for. */
+                  const missing = color !== null && !findVariant(product, s, color);
                   return (
                     <button
                       key={s}
                       className={`sz ${oos ? "oos" : ""} ${size === s ? "on" : ""}`.replace(/\s+/g, " ").trim()}
-                      disabled={oos}
+                      disabled={missing}
+                      aria-pressed={size === s}
+                      aria-label={oos && !missing ? `${s}, sold out — choose to get a restock email` : s}
                       onClick={() => setSize(s)}
                     >
                       {s}
@@ -279,13 +289,16 @@ export function ProductDetail({ product }: { product: Product }) {
                   );
                 })}
               </div>
-              {selected && selected.stock <= 5 ? (
+              {selectedOut ? (
+                <p className="pdp-note" role="status">{size} / {color} is sold out. Leave your email and we&apos;ll tell you when it&apos;s back.</p>
+              ) : selected && selected.stock <= 5 ? (
                 <p className="pdp-note">Hurry — only {selected.stock} left in {size} / {color}.</p>
               ) : product.stock ? (
                 <p className="pdp-note">Hurry — only {product.stock} left in stock.</p>
               ) : null}
             </div>
 
+            {!notifyMode && (
             <div className="sel-block">
               <div className="lbl"><span className="cap">QUANTITY</span></div>
               <div className="qty">
@@ -294,17 +307,20 @@ export function ProductDetail({ product }: { product: Product }) {
                 <button onClick={() => setQty((q) => Math.min(selected?.stock ?? 20, 20, q + 1))}>+</button>
               </div>
             </div>
+            )}
 
             <div className="pdp-ctas">
-              {product.soldout ? (
+              {notifyMode ? (
                 <form
                   className="coupon"
+                  id="pdp-notify"
                   onSubmit={async (e) => {
                     e.preventDefault();
                     const form = e.currentTarget;
                     const email = String(new FormData(form).get("email") ?? "").trim();
-                    // Only promise an email once the ERP has stored the request.
-                    const result = await requestStockAlert(email, product.id);
+                    // Only promise an email once the ERP has stored the request. A sold-out
+                    // size asks for that exact variant; a sold-out product for any of it.
+                    const result = await requestStockAlert(email, product.id, selectedOut ? selected?.id : undefined);
                     if (result.ok) {
                       showToast("WE'LL EMAIL YOU WHEN IT'S BACK");
                       form.reset();
@@ -313,7 +329,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     }
                   }}
                 >
-                  <input type="email" name="email" required autoComplete="email" placeholder="EMAIL FOR RESTOCK ALERT" aria-label="Email for restock alert" />
+                  <input type="email" name="email" required autoComplete="email" placeholder="YOUR EMAIL" aria-label="Email for a restock alert" />
                   <button type="submit">NOTIFY ME</button>
                 </form>
               ) : (
@@ -375,7 +391,7 @@ export function ProductDetail({ product }: { product: Product }) {
         </div>
       )}
 
-      <div id="sticky-cta" aria-hidden={!stickyShown} className={stickyShown ? "show" : ""}>
+      <div id="sticky-cta" aria-hidden={!stickyShown || notifyMode} className={stickyShown && !notifyMode ? "show" : ""}>
         <div>
           <span className="cap mut">{size ? `${product.name} / ${size}${color ? ` / ${color}` : ""}` : "SIZE REQUIRED"}</span>
           <br />

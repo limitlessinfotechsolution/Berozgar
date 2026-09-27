@@ -421,7 +421,11 @@ html[data-buybar] #sticky-cta{bottom:0;padding-bottom:calc(10px + env(safe-area-
 .sz{min-width:52px;min-height:48px;border:1px solid #ccc;font-size:13px;font-weight:700;transition:all var(--tf);position:relative}
 .sz:hover{border-color:var(--bk)}
 .sz.on{background:var(--bk);color:var(--wt);border-color:var(--bk)}
-.sz.oos{color:#ccc;text-decoration:line-through;pointer-events:none;background:var(--gy)}
+/* Sold out but still pickable — choosing it offers a restock email (product-detail.tsx). */
+.sz.oos{color:#999;text-decoration:line-through;background:var(--gy)}
+.sz.oos.on{background:var(--wt);color:var(--bk);border:2px solid var(--bk)}
+/* Not made in this colour: nothing to pick or ask for. */
+.sz:disabled{color:#ccc;text-decoration:line-through;background:var(--gy);pointer-events:none}
 .clrow{display:flex;gap:10px}
 .cl{width:44px;height:44px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;transition:all var(--tf)}
 .cl.on{border:2px solid var(--bk)}
