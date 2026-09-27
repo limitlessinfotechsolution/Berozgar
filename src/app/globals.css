@@ -85,6 +85,8 @@ ul{list-style:none}
 .btn-ow{background:transparent;color:var(--wt);border-color:var(--wt)}
 .btn-ow:hover{background:var(--wt);color:var(--bk)}
 .btn-full{width:100%}
+.btn-danger{background:var(--ru);border-color:var(--ru);color:var(--wt)}
+.btn-danger:hover{background:#7d3b27;border-color:#7d3b27}
 .btn[disabled]{opacity:.4;pointer-events:none}
 .tlink{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   border-bottom:1px solid var(--bk);padding-bottom:4px;transition:color var(--tn),border-color var(--tn)}
@@ -543,8 +545,9 @@ html[data-buybar] #sticky-cta{bottom:0;padding-bottom:calc(10px + env(safe-area-
 }
 .co-fail{text-align:center;padding:60px 20px;border:2px solid var(--ru)}
 .co-fail h2{color:var(--ru);margin-bottom:10px}
-/* Inline variant: shown in the review step when placement fails. */
-.co-fail.inline{text-align:left;padding:14px 18px;border-width:1px;border-left-width:3px;background:var(--of);margin-top:24px}
+/* Inline variant: shown in the review step when placement fails. display:block
+   because "inline" is also Tailwind's display:inline utility, which would win. */
+.co-fail.inline{display:block;text-align:left;padding:14px 18px;border-width:1px;border-left-width:3px;background:var(--of);margin-top:24px}
 .co-fail.inline b{color:var(--ru)}
 .co-fail.inline ul{margin:8px 0 0;padding-left:18px;list-style:disc}
 /* Uploaded product photos inside the plate box (see PhotoPlate). */

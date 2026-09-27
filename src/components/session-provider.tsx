@@ -18,6 +18,8 @@ export type User = {
   marketingEmailOptIn: boolean;
   marketingWhatsappOptIn: boolean;
   createdAt: string;
+  /* When the shopper asked for the account to be deleted; staff haven't acted yet. */
+  deletionRequestedAt?: string;
 };
 
 export type RegisterInput = {
@@ -67,6 +69,7 @@ export function toUser(c: Customer): User {
     marketingEmailOptIn: c.marketingEmailOptIn,
     marketingWhatsappOptIn: c.marketingWhatsappOptIn,
     createdAt: c.createdAt,
+    deletionRequestedAt: c.deletionRequestedAt ?? undefined,
   };
 }
 

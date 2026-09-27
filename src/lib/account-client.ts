@@ -19,6 +19,8 @@ export type Customer = {
   marketingWhatsappOptIn: boolean;
   /** ISO timestamp the account was created. */
   createdAt: string;
+  /** Set while a deletion request waits for staff (ERP account/deletion). */
+  deletionRequestedAt?: string | null;
 };
 
 export type ApiResult<T> =

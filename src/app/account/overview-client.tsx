@@ -127,6 +127,32 @@ function SetupNudges({ user }: { user: User }) {
   );
 }
 
+/* Shown after signing back in while a deletion request waits for staff. */
+function DeletionBanner({ requestedAt }: { requestedAt: string }) {
+  const { refresh } = useSession();
+  const [busy, setBusy] = useState(false);
+
+  async function keep() {
+    setBusy(true);
+    const result = await accountApi("/api/account/deletion", { method: "DELETE" });
+    setBusy(false);
+    if (!result.ok) return showToast(result.error.toUpperCase());
+    await refresh();
+    showToast("YOUR ACCOUNT STAYS");
+  }
+
+  return (
+    <div className="co-fail inline" role="status" style={{ marginTop: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px 20px", flexWrap: "wrap" }}>
+      <span className="small">
+        <b>You asked us to delete this account on {formatDay(requestedAt)}.</b> We&apos;ll do it within 30 days unless you keep it.
+      </span>
+      <button type="button" className="btn btn-o" disabled={busy} onClick={() => void keep()}>
+        {busy ? "KEEPING…" : "KEEP MY ACCOUNT"}
+      </button>
+    </div>
+  );
+}
+
 export function AccountOverview() {
   const { wishlist } = useCart();
   const { user } = useSession();
@@ -139,7 +165,8 @@ export function AccountOverview() {
       <h1 className="h1">WELCOME BACK{firstName ? `, ${firstName}` : ""}</h1>
       {user?.createdAt && <p className="small mut acc-sub">Member since {formatMonth(user.createdAt)}</p>}
 
-      {user && <SetupNudges user={user} />}
+      {user?.deletionRequestedAt && <DeletionBanner requestedAt={user.deletionRequestedAt} />}
+      {user && !user.deletionRequestedAt && <SetupNudges user={user} />}
 
       <div className="ov-grid">
         <section className="ov-card" aria-labelledby="ov-order-h">
