@@ -68,6 +68,14 @@ describe("POST /api/checkout", () => {
     expect(revalidateTag).not.toHaveBeenCalled();
   });
 
+  it("names the field the ERP refused, falling back to a general hint for bare zod messages", async () => {
+    erpAnswers(422, { error: "validation_error", issues: { formErrors: [], fieldErrors: { address: ["Choose your state from the list"] } } });
+    expect((await (await checkout("{}")).json()).error).toBe("Choose your state from the list");
+
+    erpAnswers(422, { error: "validation_error", issues: { formErrors: [], fieldErrors: { customer: ["Required"] } } });
+    expect((await (await checkout("{}")).json()).error).toMatch(/check your phone number/);
+  });
+
   it("never reports an order when the ERP is down or answers without one", async () => {
     fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
     const down = await checkout("{}");

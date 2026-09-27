@@ -6,6 +6,8 @@ import { OrderActions } from "@/components/order-actions";
 import { OrderView } from "@/components/order-view";
 import { fetchOrder, type Lookup } from "@/components/track-order-client";
 import { useHydrated } from "@/lib/use-hydrated";
+import { MOBILE_PATTERN, toNationalMobile } from "@/lib/phone";
+import { explain } from "@/lib/validity";
 
 /*
  * One real order in the account area (the layout guarantees a signed-in shopper).
@@ -52,10 +54,14 @@ export function AccountOrderClient({ orderNumber }: { orderNumber: string }) {
         >
           <input
             type="tel"
-            placeholder="PHONE USED AT CHECKOUT"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            pattern={MOBILE_PATTERN}
+            placeholder="+91 MOBILE USED AT CHECKOUT"
             value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            aria-label="Phone used at checkout"
+            onChange={(e) => setTyped(toNationalMobile(e.target.value))}
+            aria-label="10-digit mobile number used at checkout (+91)"
+            {...explain("Enter the 10-digit mobile number used at checkout.")}
             required
           />
           <button type="submit">OPEN</button>

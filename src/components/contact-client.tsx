@@ -6,6 +6,7 @@ import { FormError } from "@/components/form-error";
 import { useSession } from "@/components/session-provider";
 import { accountApi } from "@/lib/account-client";
 import { SUPPORT, supportWhatsapp } from "@/lib/support";
+import { PhoneInput } from "@/components/phone-input";
 
 /* Label on the form → the ERP ticket's category. */
 const SUBJECTS: Array<[label: string, category: string]> = [
@@ -117,7 +118,7 @@ export function ContactClient() {
               <div className="frow">
                 <div className="fgrp">
                   <label className="fl" htmlFor="ct-phone">PHONE (OPTIONAL)</label>
-                  <input className="inp" id="ct-phone" type="tel" autoComplete="tel" value={phoneValue} onChange={(e) => setPhone(e.target.value)} />
+                  <PhoneInput id="ct-phone" value={phoneValue} onChange={setPhone} />
                 </div>
                 <div className="fgrp">
                   <label className="fl" htmlFor="ct-order">ORDER NUMBER (OPTIONAL)</label>

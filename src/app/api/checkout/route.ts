@@ -32,7 +32,16 @@ function describe(status: number, body: { error?: string; message?: string; line
       )
       .join(" ");
   }
-  if (status === 422) return "Some details look wrong — check your phone number, PIN code and address.";
+  if (status === 422) {
+    // The ERP's field messages are written for shoppers ("Choose your state from
+    // the list", "Enter a valid 6-digit PIN code"); zod's bare defaults aren't.
+    const fieldErrors = (body.issues as { fieldErrors?: Record<string, string[] | undefined> } | undefined)?.fieldErrors;
+    const specific = Object.values(fieldErrors ?? {})
+      .flat()
+      .filter((m): m is string => typeof m === "string" && m.length > 0 && !/^(required|invalid|expected)/i.test(m));
+    if (specific.length) return [...new Set(specific)].join(" ");
+    return "Some details look wrong — check your phone number, PIN code and address.";
+  }
   return "The order service didn't accept the order.";
 }
 

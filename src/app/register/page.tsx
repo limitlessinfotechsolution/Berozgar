@@ -8,6 +8,7 @@ import { FormError } from "@/components/form-error";
 import { useSession } from "@/components/session-provider";
 import { signupPolicies } from "@/lib/account-client";
 import { showToast } from "@/lib/ui-events";
+import { PhoneInput } from "@/components/phone-input";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function RegisterPage() {
         <div className="frow">
           <div className="fgrp">
             <label className="fl" htmlFor="rg-phone">MOBILE</label>
-            <input className="inp" id="rg-phone" name="phone" type="tel" autoComplete="tel" required placeholder="98200 11223" />
+            <PhoneInput id="rg-phone" name="phone" required />
           </div>
           <div className="fgrp">
             <label className="fl" htmlFor="rg-dob">DATE OF BIRTH</label>

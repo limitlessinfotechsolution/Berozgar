@@ -94,6 +94,18 @@ ul{list-style:none}
 .inp{width:100%;min-height:50px;padding:0 16px;border:1px solid #ccc;background:var(--wt);transition:border-color var(--tn)}
 .inp:focus{border-color:var(--bk);outline:none}
 .inp::placeholder{color:#999}
+/* Phone: a fixed +91 joined to the 10-digit field (phone-input.tsx). */
+.phone-in{display:flex}
+.phone-cc{display:flex;align-items:center;padding:0 12px;border:1px solid #ccc;border-right:0;background:var(--of);font-size:14px;font-weight:700;white-space:nowrap}
+.phone-cc{gap:6px}
+.phone-cc-flag{font-size:10px;letter-spacing:.1em;color:#777}
+.phone-in .inp{flex:1;min-width:0}
+.phone-in:focus-within .phone-cc{border-color:var(--bk)}
+/* Selects that sit in forms beside .inp fields (state, country). */
+select.inp{appearance:none;padding-right:40px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23111' stroke-width='1.6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+select.inp:invalid{color:#999}
+select.inp option{color:var(--bk)}
+select.inp:disabled{cursor:default;color:var(--bk);background-color:var(--of);background-image:none}
 label.fl{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin:0 0 6px}
 .frow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 @media(max-width:560px){.frow{grid-template-columns:minmax(0,1fr)}}

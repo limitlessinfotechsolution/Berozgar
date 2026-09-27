@@ -5,6 +5,7 @@ import { FormError } from "@/components/form-error";
 import { useSession, type User } from "@/components/session-provider";
 import { accountApi, type Customer } from "@/lib/account-client";
 import { showToast } from "@/lib/ui-events";
+import { PhoneInput } from "@/components/phone-input";
 
 const section: React.CSSProperties = {
   maxWidth: "560px",
@@ -134,7 +135,7 @@ function PhoneForm({ user }: { user: User }) {
           <FormError message={error} />
           <div className="fgrp">
             <label className="fl" htmlFor="pf-phone">MOBILE NUMBER</label>
-            <input className="inp" id="pf-phone" type="tel" autoComplete="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <PhoneInput id="pf-phone" required value={phone} onChange={setPhone} />
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <button className="btn" type="submit" disabled={busy}>{busy ? "SENDING…" : "SEND CODE"}</button>

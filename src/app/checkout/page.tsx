@@ -14,6 +14,10 @@ import { deliveryRange, PINCODE_KEY, type PincodeInfo } from "@/lib/delivery";
 import { useShippingRule } from "@/components/store-settings-provider";
 import { formatDecimalINR as inrDecimal, formatINR as inr, toMinor } from "@/lib/money";
 import { standardShippingMinor } from "@/lib/shipping";
+import { PhoneInput } from "@/components/phone-input";
+import { CountryField, StateSelect } from "@/components/address-fields";
+import { matchState } from "@/lib/india";
+import { PINCODE_MESSAGE, PINCODE_PATTERN, explain } from "@/lib/validity";
 
 /* ERP money is a decimal string; it is compared and subtracted as paise, never floats. */
 const minor = (s: string | null | undefined) => toMinor(s) ?? 0;
@@ -129,19 +133,19 @@ export default function CheckoutPage() {
     landmark: "",
     ...deliveryEdits,
   };
-  /* The browser's own "match the requested format" doesn't say how to fix it. */
-  const explain = (message: string) => ({
-    onInvalid: (e: React.FormEvent<HTMLInputElement>) => e.currentTarget.setCustomValidity(message),
-    onInput: (e: React.FormEvent<HTMLInputElement>) => e.currentTarget.setCustomValidity(""),
-  });
-
   const field = (key: keyof Delivery) => ({
     value: delivery[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setDeliveryEdits((d) => ({ ...d, [key]: e.target.value })),
   });
 
   const lineItems = items.map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
-  const validPin = /^[1-9][0-9]{5}$/.test(delivery.pincode) ? delivery.pincode : undefined;
+  const validPin = new RegExp(`^${PINCODE_PATTERN}$`).test(delivery.pincode) ? delivery.pincode : undefined;
+  /* Soft check only: the pincode data can be wrong, so this never blocks. */
+  const chosenState = matchState(delivery.state)?.name;
+  const pinStateHint =
+    pinInfo?.state && chosenState && pinInfo.pincode === validPin && matchState(pinInfo.state)?.name !== chosenState
+      ? `Pincode ${pinInfo.pincode} is in ${pinInfo.state}.`
+      : null;
   const quoteKey = JSON.stringify({
     items: lineItems,
     express,
@@ -475,16 +479,11 @@ export default function CheckoutPage() {
                 </div>
                 <div className="fgrp">
                   <label className="fl" htmlFor="co-phone">PHONE</label>
-                  <input
-                    className="inp"
+                  <PhoneInput
                     id="co-phone"
-                    type="tel"
                     required
-                    autoComplete="tel"
-                    placeholder="10-digit mobile"
-                    pattern="(\+?91|0)?[\s-]?[6-9][0-9\s-]{9,12}"
-                    {...field("phone")}
-                    {...explain("Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9.")}
+                    value={delivery.phone}
+                    onChange={(phone) => setDeliveryEdits((d) => ({ ...d, phone }))}
                   />
                 </div>
                 <div className="fgrp">
@@ -507,10 +506,10 @@ export default function CheckoutPage() {
                     required
                     inputMode="numeric"
                     maxLength={6}
-                    pattern="[1-9][0-9]{5}"
+                    pattern={PINCODE_PATTERN}
                     autoComplete="postal-code"
                     {...field("pincode")}
-                    {...explain("Enter your 6-digit pincode.")}
+                    {...explain(PINCODE_MESSAGE)}
                   />
                   {pinWindow && (
                     <small className="small mut" style={{ display: "block", marginTop: "6px" }}>
@@ -525,9 +524,15 @@ export default function CheckoutPage() {
                   </div>
                   <div className="fgrp">
                     <label className="fl" htmlFor="co-state">STATE</label>
-                    <input className="inp" id="co-state" required autoComplete="address-level1" {...field("state")} />
+                    <StateSelect id="co-state" value={delivery.state} onChange={(state) => setDeliveryEdits((d) => ({ ...d, state }))} />
+                    {pinStateHint && (
+                      <small className="small" role="status" style={{ display: "block", marginTop: "6px", color: "var(--ru)" }}>
+                        {pinStateHint}
+                      </small>
+                    )}
                   </div>
                 </div>
+                <CountryField id="co-country" />
 
                 <h3 className="cap" style={{ margin: "26px 0 12px" }}>SHIPPING METHOD</h3>
                 <div className={`del-opt ${!express ? "on" : ""}`.trim()} role="button" tabIndex={0} onClick={() => setExpress(false)}>

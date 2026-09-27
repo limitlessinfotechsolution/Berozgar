@@ -27,7 +27,7 @@ export function PincodeCheck() {
   /* null = untouched: show the pincode checked on an earlier product page. */
   const [pinEdit, setPinEdit] = useState<string | null>(null);
   const saved = hydrated ? readStored<string>(PINCODE_KEY, "") : "";
-  const remembered = /^[1-9][0-9]{5}$/.test(saved) ? saved : "";
+  const remembered = /^[1-8][0-9]{5}$/.test(saved) ? saved : "";
   const pin = pinEdit ?? remembered;
   const [check, setCheck] = useState<Check>({ state: "idle" });
 
@@ -56,7 +56,7 @@ export function PincodeCheck() {
       <form className="coupon" style={{ margin: "0 0 10px" }} onSubmit={submit}>
         <input
           inputMode="numeric"
-          pattern="[1-9][0-9]{5}"
+          pattern="[1-8][0-9]{5}"
           maxLength={6}
           autoComplete="postal-code"
           placeholder="ENTER PINCODE"

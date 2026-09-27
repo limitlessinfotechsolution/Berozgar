@@ -8,6 +8,7 @@ import { safeNext } from "@/lib/next-path";
 import { FormError } from "@/components/form-error";
 import { useSession } from "@/components/session-provider";
 import { showToast } from "@/lib/ui-events";
+import { PhoneInput } from "@/components/phone-input";
 
 type Mode = "password" | "otp";
 
@@ -152,17 +153,7 @@ export function LoginClient() {
         <form onSubmit={sendCode}>
           <div className="fgrp">
             <label className="fl" htmlFor="li-phone">MOBILE NUMBER</label>
-            <input
-              className="inp"
-              id="li-phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              required
-              placeholder="98200 11223"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
+            <PhoneInput id="li-phone" required value={phone} onChange={setPhone} />
           </div>
           <button className="btn btn-full" type="submit" disabled={busy}>{busy ? "SENDING…" : "SEND CODE"}</button>
           <p className="small mut" style={{ marginTop: "12px" }}>

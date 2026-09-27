@@ -8,7 +8,7 @@ import { erpUrl } from "@/lib/catalogue";
  */
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/pincode/[pincode]">) {
   const { pincode } = await ctx.params;
-  if (!/^[1-9][0-9]{5}$/.test(pincode)) return NextResponse.json({ error: "invalid_pincode" }, { status: 400 });
+  if (!/^[1-8][0-9]{5}$/.test(pincode)) return NextResponse.json({ error: "invalid_pincode" }, { status: 400 });
   const total = request.nextUrl.searchParams.get("total");
   const query = total && /^\d{1,8}(\.\d{1,2})?$/.test(total) ? `?total=${total}` : "";
 

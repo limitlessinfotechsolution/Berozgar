@@ -5,6 +5,10 @@ import { FormError } from "@/components/form-error";
 import { useSession } from "@/components/session-provider";
 import { accountApi, localPhone } from "@/lib/account-client";
 import { showToast } from "@/lib/ui-events";
+import { PhoneInput } from "@/components/phone-input";
+import { CountryField, StateSelect } from "@/components/address-fields";
+import { PINCODE_MESSAGE, PINCODE_PATTERN, explain } from "@/lib/validity";
+import type { PincodeInfo } from "@/lib/delivery";
 
 /* An address as the ERP's address book returns it (/api/public/v1/account/addresses). */
 type SavedAddress = {
@@ -14,6 +18,7 @@ type SavedAddress = {
   recipientPhone: string | null;
   line1: string;
   line2: string | null;
+  landmark?: string | null;
   city: string;
   state: string;
   pincode: string;
@@ -32,6 +37,16 @@ function AddressForm({
   const { user } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [state, setState] = useState(initial?.state ?? "");
+
+  /* Fill the state from the pincode, but never over one the shopper chose. */
+  async function lookupPincode(pin: string) {
+    if (state || !new RegExp(`^${PINCODE_PATTERN}$`).test(pin)) return;
+    const info = await fetch(`/api/pincode/${pin}`)
+      .then((res) => (res.ok ? (res.json() as Promise<PincodeInfo>) : null))
+      .catch(() => null);
+    if (info?.state) setState((current) => current || info.state!);
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -45,6 +60,7 @@ function AddressForm({
       recipientPhone: text("recipientPhone") || null,
       line1: text("line1"),
       line2: text("line2") || null,
+      landmark: text("landmark") || null,
       city: text("city"),
       state: text("state"),
       pincode: text("pincode"),
@@ -78,8 +94,12 @@ function AddressForm({
         <input className="inp" id="ad-line1" name="line1" required maxLength={200} autoComplete="address-line1" placeholder="Flat, building, street" defaultValue={initial?.line1 ?? ""} />
       </div>
       <div className="fgrp">
-        <label className="fl" htmlFor="ad-line2">AREA / LANDMARK</label>
+        <label className="fl" htmlFor="ad-line2">FLAT, FLOOR, BUILDING (OPTIONAL)</label>
         <input className="inp" id="ad-line2" name="line2" maxLength={200} autoComplete="address-line2" defaultValue={initial?.line2 ?? ""} />
+      </div>
+      <div className="fgrp">
+        <label className="fl" htmlFor="ad-landmark">LANDMARK (OPTIONAL)</label>
+        <input className="inp" id="ad-landmark" name="landmark" maxLength={120} placeholder="Near…" defaultValue={initial?.landmark ?? ""} />
       </div>
       <div className="frow">
         <div className="fgrp">
@@ -88,19 +108,32 @@ function AddressForm({
         </div>
         <div className="fgrp">
           <label className="fl" htmlFor="ad-state">STATE</label>
-          <input className="inp" id="ad-state" name="state" required maxLength={80} autoComplete="address-level1" defaultValue={initial?.state ?? ""} />
+          <StateSelect id="ad-state" name="state" value={state} onChange={setState} />
         </div>
       </div>
       <div className="frow">
         <div className="fgrp">
           <label className="fl" htmlFor="ad-pin">PIN CODE</label>
-          <input className="inp" id="ad-pin" name="pincode" required inputMode="numeric" pattern="[1-9][0-9]{5}" maxLength={6} autoComplete="postal-code" defaultValue={initial?.pincode ?? ""} />
+          <input
+            className="inp"
+            id="ad-pin"
+            name="pincode"
+            required
+            inputMode="numeric"
+            pattern={PINCODE_PATTERN}
+            maxLength={6}
+            autoComplete="postal-code"
+            defaultValue={initial?.pincode ?? ""}
+            onChange={(e) => void lookupPincode(e.target.value)}
+            {...explain(PINCODE_MESSAGE)}
+          />
         </div>
         <div className="fgrp">
           <label className="fl" htmlFor="ad-phone">PHONE</label>
-          <input className="inp" id="ad-phone" name="recipientPhone" type="tel" autoComplete="tel" defaultValue={localPhone(initial?.recipientPhone) || user?.phone || ""} />
+          <PhoneInput id="ad-phone" name="recipientPhone" defaultValue={localPhone(initial?.recipientPhone) || user?.phone || ""} />
         </div>
       </div>
+      <CountryField id="ad-country" />
       <label className="ck"><input type="checkbox" name="isDefault" defaultChecked={initial?.isDefault ?? false} /> USE AS DEFAULT</label>
       <div style={{ display: "flex", gap: "10px", marginTop: "18px" }}>
         <button className="btn" type="submit" disabled={busy}>{busy ? "SAVING…" : "SAVE ADDRESS"}</button>
@@ -165,6 +198,7 @@ export function Addresses() {
                   {address.recipientName && <>{address.recipientName}<br /></>}
                   {address.line1}<br />
                   {address.line2 && <>{address.line2}<br /></>}
+                  {address.landmark && <>Landmark: {address.landmark}<br /></>}
                   {address.city}, {address.state} — {address.pincode}
                   {address.recipientPhone && <><br />{address.recipientPhone}</>}
                 </p>

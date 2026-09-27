@@ -9,6 +9,8 @@ import { OrderActions } from "@/components/order-actions";
 import { OrderView } from "@/components/order-view";
 import { readStored, useHydrated } from "@/lib/use-hydrated";
 import { LAST_ORDER_KEY, rememberOrder, type TrackedOrder } from "@/lib/tracking";
+import { MOBILE_PATTERN, toNationalMobile } from "@/lib/phone";
+import { explain } from "@/lib/validity";
 
 export type Lookup =
   | { state: "idle" }
@@ -104,11 +106,15 @@ export function TrackOrderClient() {
           />
           <input
             type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            pattern={MOBILE_PATTERN}
             name="ph"
-            placeholder="PHONE USED AT CHECKOUT"
+            placeholder="+91 MOBILE USED AT CHECKOUT"
             value={phone}
-            onChange={(e) => setPhoneEdit(e.target.value)}
-            aria-label="Phone used at checkout"
+            onChange={(e) => setPhoneEdit(toNationalMobile(e.target.value))}
+            aria-label="10-digit mobile number used at checkout (+91)"
+            {...explain("Enter the 10-digit mobile number used at checkout.")}
             required
             style={{ borderLeft: "1px solid var(--bk)" }}
           />
