@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FormError } from "@/components/form-error";
 import { PasswordField } from "@/components/password-field";
 import { PhoneInput } from "@/components/phone-input";
 import { SavedNote, useSavedNote } from "@/components/saved-note";
 import { useSession, type User } from "@/components/session-provider";
 import { accountApi, type Customer } from "@/lib/account-client";
+import { formatDay, timeAgo } from "@/lib/dates";
+import { describeDevice } from "@/lib/device";
 import { passwordAcceptable } from "@/lib/password-rules";
 import { showToast } from "@/lib/ui-events";
 
@@ -110,7 +112,7 @@ function PhoneForm({ user }: { user: User }) {
 }
 
 /* Separate form: a password change must not ride along with profile edits. */
-function PasswordForm({ user }: { user: User }) {
+function PasswordForm({ user, onSaved }: { user: User; onSaved: () => void }) {
   const { refresh } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -143,6 +145,7 @@ function PasswordForm({ user }: { user: User }) {
     await refresh();
     setSavedText(hadPassword ? "Password updated" : "Password set");
     flashSaved();
+    onSaved();
     showToast(hadPassword ? "PASSWORD UPDATED — OTHER DEVICES SIGNED OUT" : "PASSWORD SET");
   }
 
@@ -171,8 +174,116 @@ function PasswordForm({ user }: { user: User }) {
   );
 }
 
+type DeviceSession = { id: string; userAgent: string | null; createdAt: string; lastSeenAt: string };
+
+/*
+ * Every live session on the account (ERP /account/sessions), this one first. Another
+ * device can be signed out on its own or all at once; this one signs out with Log out.
+ */
+function DevicesSection({ version }: { version: number }) {
+  const [sessions, setSessions] = useState<DeviceSession[] | null>(null);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+
+  const load = useCallback(async () => {
+    const result = await accountApi<{ data: DeviceSession[]; currentId: string }>("/api/account/sessions");
+    if (!result.ok) return setError(result.error);
+    setError(null);
+    setCurrentId(result.data.currentId);
+    // This device first, then most recently used.
+    setSessions([...result.data.data].sort((a, b) => Number(b.id === result.data.currentId) - Number(a.id === result.data.currentId)));
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads after mount and after a password change
+    void load();
+  }, [load, version]);
+
+  async function signOut(id: string) {
+    setBusyId(id);
+    const result = await accountApi(`/api/account/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
+    setBusyId(null);
+    if (!result.ok && result.status !== 404) return setError(result.error);
+    setSessions((list) => list?.filter((s) => s.id !== id) ?? null);
+    showToast("DEVICE SIGNED OUT");
+  }
+
+  async function signOutOthers() {
+    setBusyId("all");
+    const result = await accountApi<{ revoked: number }>("/api/account/sessions", { method: "DELETE" });
+    setBusyId(null);
+    setConfirmAll(false);
+    if (!result.ok) return setError(result.error);
+    setSessions((list) => list?.filter((s) => s.id === currentId) ?? null);
+    const count = result.data.revoked ?? others;
+    showToast(count === 1 ? "1 DEVICE SIGNED OUT" : `${count} DEVICES SIGNED OUT`);
+  }
+
+  const others = sessions?.filter((s) => s.id !== currentId).length ?? 0;
+
+  return (
+    <section className="acc-sec" aria-labelledby="sec-dev-h">
+      <h2 className="cap" id="sec-dev-h">Where you&apos;re signed in</h2>
+      <p className="small mut">If you don&apos;t recognise a device, sign it out and change your password.</p>
+      <FormError message={error} />
+      {!sessions && !error && (
+        <div aria-hidden="true" style={{ display: "grid", gap: "10px" }}>
+          <div className="skel-line" />
+          <div className="skel-line short" />
+        </div>
+      )}
+      {sessions && (
+        <ul className="dev-list">
+          {sessions.map((s) => {
+            const current = s.id === currentId;
+            return (
+              <li key={s.id} className="dev-row">
+                <div>
+                  <p className="small">
+                    <b>{describeDevice(s.userAgent)}</b>
+                    {current && <span className="pill pill-ok">This device</span>}
+                  </p>
+                  <p className="small mut">
+                    {current ? "Active now" : `Last active ${timeAgo(s.lastSeenAt)}`} · Signed in {formatDay(s.createdAt)}
+                  </p>
+                </div>
+                {!current && (
+                  <button type="button" className="tlink" disabled={busyId !== null} onClick={() => void signOut(s.id)}>
+                    {busyId === s.id ? "Signing out…" : "Sign out"}
+                    <span className="sr-only"> {describeDevice(s.userAgent)}</span>
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {others > 0 && (
+        <div className="form-act" style={{ marginTop: "18px" }}>
+          {!confirmAll ? (
+            <button type="button" className="btn btn-o" onClick={() => setConfirmAll(true)}>
+              SIGN OUT OF ALL OTHER DEVICES
+            </button>
+          ) : (
+            <>
+              <button type="button" className="btn" disabled={busyId !== null} onClick={() => void signOutOthers()}>
+                {busyId === "all" ? "SIGNING OUT…" : others === 1 ? "SIGN OUT 1 DEVICE" : `SIGN OUT ${others} DEVICES`}
+              </button>
+              <button type="button" className="btn btn-o" onClick={() => setConfirmAll(false)}>CANCEL</button>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function Security() {
   const { user } = useSession();
+  /* Bumped after a password change, which signs out the other devices. */
+  const [devicesVersion, setDevicesVersion] = useState(0);
 
   return (
     <>
@@ -180,7 +291,8 @@ export function Security() {
       {user && (
         <>
           <PhoneForm key={`${user.phone}|${user.phoneVerified}`} user={user} />
-          <PasswordForm user={user} />
+          <PasswordForm user={user} onSaved={() => setDevicesVersion((v) => v + 1)} />
+          <DevicesSection version={devicesVersion} />
         </>
       )}
     </>

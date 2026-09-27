@@ -37,10 +37,14 @@ function requestId(request: Request): string {
 /** Headers every ERP call from this server carries. */
 export function erpHeaders(request: Request, token?: string | null): Record<string, string> {
   const secret = process.env.ERP_SERVER_SECRET;
+  /* The shopper's browser, so a new session records it for the account's device list
+     (the ERP stores the first 300 characters) rather than this server's fetch. */
+  const userAgent = request.headers.get("user-agent")?.slice(0, 300);
   return {
     "x-request-id": requestId(request),
     "x-forwarded-for": shopperIp(request),
     "x-bz-client-ip": shopperIp(request),
+    ...(userAgent ? { "user-agent": userAgent } : {}),
     ...(secret ? { "x-bz-storefront": secret } : {}),
     ...(token ? { authorization: `Bearer ${token}` } : {}),
   };

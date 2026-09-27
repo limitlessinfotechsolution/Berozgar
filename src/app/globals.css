@@ -619,6 +619,9 @@ html[data-buybar] #sticky-cta{bottom:0;padding-bottom:calc(10px + env(safe-area-
 .nudges{border:1px solid var(--bk);padding:6px 22px;margin-top:24px;list-style:none}
 .nudges li{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap;padding:14px 0;border-top:1px solid var(--gy)}
 .nudges li:first-child{border-top:0}
+.dev-list{list-style:none;margin:0;padding:0;border-bottom:1px solid var(--gy)}
+.dev-row{display:flex;justify-content:space-between;align-items:center;gap:8px 18px;flex-wrap:wrap;padding:16px 0;border-top:1px solid var(--gy)}
+.dev-row .small+.small{margin-top:4px}
 /* ============ 17 EDITORIAL PAGES ============ */
 .mani-sec{min-height:88svh;display:flex;align-items:center}
 .mani-sec .big{font-weight:900;text-transform:uppercase;letter-spacing:-.03em;line-height:.95;font-size:clamp(2.6rem,9vw,8.5rem)}
